@@ -247,27 +247,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
                 /*
-                Highlight previous move.
-                */
-
-                if (lastMove) {
-                    const isFrom =
-                        lastMove.fromRow === row &&
-                        lastMove.fromColumn === column;
-
-                    const isTo =
-                        lastMove.toRow === row &&
-                        lastMove.toColumn === column;
-
-                    if (isFrom || isTo) {
-                        square.classList.add(
-                            "last-move"
-                        );
-                    }
-                }
-
-
-                /*
                 Selected square.
                 */
 
@@ -348,6 +327,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 chessboard.appendChild(square);
             }
         }
+        drawLastMoveArrow();
     }
 
 
@@ -2034,6 +2014,178 @@ document.addEventListener("DOMContentLoaded", function () {
         return (
             letters[type] || ""
         );
+    }
+
+    function drawLastMoveArrow() {
+        if (!lastMove) {
+            return;
+        }
+
+        const svgNamespace =
+            "http://www.w3.org/2000/svg";
+
+        const svg =
+            document.createElementNS(
+                svgNamespace,
+                "svg"
+            );
+
+        svg.classList.add("move-arrow");
+
+        svg.setAttribute(
+            "viewBox",
+            "0 0 800 800"
+        );
+
+        svg.setAttribute(
+            "preserveAspectRatio",
+            "none"
+        );
+
+        /*
+        Each chess square is represented
+        as 100 x 100 inside the SVG.
+        */
+
+        const startX =
+            lastMove.fromColumn * 100 + 50;
+
+        const startY =
+            lastMove.fromRow * 100 + 50;
+
+        const targetX =
+            lastMove.toColumn * 100 + 50;
+
+        const targetY =
+            lastMove.toRow * 100 + 50;
+
+
+        /*
+        Calculate direction.
+        */
+
+        const deltaX =
+            targetX - startX;
+
+        const deltaY =
+            targetY - startY;
+
+        const distance =
+            Math.sqrt(
+                deltaX * deltaX +
+                deltaY * deltaY
+            );
+
+        if (distance === 0) {
+            return;
+        }
+
+        const unitX =
+            deltaX / distance;
+
+        const unitY =
+            deltaY / distance;
+
+
+        /*
+        Shorten arrow so the arrowhead
+        finishes nicely inside the square.
+        */
+
+        const endX =
+            targetX - unitX * 28;
+
+        const endY =
+            targetY - unitY * 28;
+
+
+        /*
+        Arrow line.
+        */
+
+        const line =
+            document.createElementNS(
+                svgNamespace,
+                "line"
+            );
+
+        line.setAttribute("x1", startX);
+        line.setAttribute("y1", startY);
+
+        line.setAttribute("x2", endX);
+        line.setAttribute("y2", endY);
+
+        line.classList.add(
+            "move-arrow-line"
+        );
+
+
+        /*
+        Arrow head.
+        */
+
+        const arrowLength = 34;
+        const arrowWidth = 25;
+
+        const tipX = targetX;
+        const tipY = targetY;
+
+        const baseX =
+            targetX -
+            unitX * arrowLength;
+
+        const baseY =
+            targetY -
+            unitY * arrowLength;
+
+        const perpendicularX =
+            -unitY;
+
+        const perpendicularY =
+            unitX;
+
+        const leftX =
+            baseX +
+            perpendicularX *
+            arrowWidth;
+
+        const leftY =
+            baseY +
+            perpendicularY *
+            arrowWidth;
+
+        const rightX =
+            baseX -
+            perpendicularX *
+            arrowWidth;
+
+        const rightY =
+            baseY -
+            perpendicularY *
+            arrowWidth;
+
+        const arrowHead =
+            document.createElementNS(
+                svgNamespace,
+                "polygon"
+            );
+
+        arrowHead.setAttribute(
+            "points",
+            `${tipX},${tipY} ` +
+            `${leftX},${leftY} ` +
+            `${rightX},${rightY}`
+        );
+
+        arrowHead.classList.add(
+            "move-arrow-head"
+        );
+
+
+        svg.appendChild(line);
+        svg.appendChild(arrowHead);
+
+        chessboard.appendChild(svg);
     }
 
 
