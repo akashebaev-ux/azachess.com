@@ -2,13 +2,17 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="AzaChess - Play chess online."
     >
 
     <title>AzaChess</title>
@@ -30,7 +34,25 @@
 
         <section class="game-container">
 
-            <div id="chessboard" class="chessboard"></div>
+            <div class="game-area">
+
+                <div class="game-info">
+                    <p>
+                        Turn:
+                        <strong id="turn-display">
+                            White
+                        </strong>
+                    </p>
+                </div>
+
+                <div
+                    id="chessboard"
+                    class="chessboard"
+                    aria-label="Chess board"
+                >
+                </div>
+
+            </div>
 
         </section>
 
@@ -39,5 +61,4 @@
     <script src="{% static 'game/js/chess.js' %}"></script>
 
 </body>
-
 </html>
