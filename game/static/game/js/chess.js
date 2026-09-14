@@ -1,25 +1,57 @@
 document.addEventListener("DOMContentLoaded", function () {
+    /*
+    ============================================================
+    DOM ELEMENTS
+    ============================================================
+    */
+
     const chessboard = document.getElementById("chessboard");
     const turnDisplay = document.getElementById("turn-display");
 
-    const pieceSymbols = {
-        white: {
-            king: "♔",
-            queen: "♕",
-            rook: "♖",
-            bishop: "♗",
-            knight: "♘",
-            pawn: "♙"
-        },
-        black: {
-            king: "♚",
-            queen: "♛",
-            rook: "♜",
-            bishop: "♝",
-            knight: "♞",
-            pawn: "♟"
-        }
-    };
+    const capturedWhiteContainer =
+        document.getElementById("captured-white");
+
+    const capturedBlackContainer =
+        document.getElementById("captured-black");
+
+    const moveHistoryContainer =
+        document.getElementById("move-history");
+
+
+    /*
+    ============================================================
+    BOARD COORDINATES
+    ============================================================
+    */
+
+    const boardFiles = [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H"
+    ];
+
+    const boardRanks = [
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1
+    ];
+
+
+    /*
+    ============================================================
+    PIECES
+    ============================================================
+    */
 
     function createPiece(type, color) {
         return {
@@ -28,6 +60,7 @@ document.addEventListener("DOMContentLoaded", function () {
             hasMoved: false
         };
     }
+
 
     function createInitialBoard() {
         return [
@@ -51,10 +84,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 createPiece("pawn", "black"),
                 createPiece("pawn", "black")
             ],
-            [null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null],
+            [
+                null, null, null, null,
+                null, null, null, null
+            ],
+            [
+                null, null, null, null,
+                null, null, null, null
+            ],
+            [
+                null, null, null, null,
+                null, null, null, null
+            ],
+            [
+                null, null, null, null,
+                null, null, null, null
+            ],
             [
                 createPiece("pawn", "white"),
                 createPiece("pawn", "white"),
@@ -78,19 +123,77 @@ document.addEventListener("DOMContentLoaded", function () {
         ];
     }
 
-    let board = createInitialBoard();
-
-    let currentTurn = "white";
-    let selectedSquare = null;
-    let enPassantTarget = null;
-    let halfMoveClock = 0;
-    let gameOver = false;
-
-    const positionHistory = new Map();
 
     /*
     ============================================================
-    BOARD DISPLAY
+    GAME STATE
+    ============================================================
+    */
+
+    let board = createInitialBoard();
+
+    let currentTurn = "white";
+
+    let selectedSquare = null;
+
+    let enPassantTarget = null;
+
+    let halfMoveClock = 0;
+
+    let gameOver = false;
+
+    let lastMove = null;
+
+
+    /*
+    Captured pieces.
+    */
+
+    let capturedWhitePieces = [];
+    let capturedBlackPieces = [];
+
+
+    /*
+    Move history.
+
+    Each element looks like:
+
+    {
+        moveNumber: 1,
+        white: "e4",
+        black: "e5"
+    }
+    */
+
+    let moveHistory = [];
+
+    let fullMoveNumber = 1;
+
+
+    /*
+    Threefold repetition.
+    */
+
+    const positionHistory = new Map();
+
+
+    /*
+    ============================================================
+    PIECE IMAGE PATH
+    ============================================================
+    */
+
+    function getPieceImagePath(piece) {
+        return (
+            `/static/game/images/pieces/` +
+            `${piece.color}/${piece.type}.svg`
+        );
+    }
+
+
+    /*
+    ============================================================
+    CREATE / RENDER BOARD
     ============================================================
     */
 
@@ -108,7 +211,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         for (let row = 0; row < 8; row++) {
             for (let column = 0; column < 8; column++) {
-                const square = document.createElement("div");
+                const square =
+                    document.createElement("div");
 
                 square.classList.add("square");
 
@@ -121,34 +225,120 @@ document.addEventListener("DOMContentLoaded", function () {
                 square.dataset.row = row;
                 square.dataset.column = column;
 
-                const piece = board[row][column];
 
-                if (piece) {
-                    square.textContent =
-                        pieceSymbols[piece.color][piece.type];
+                /*
+                Rank labels: 8 → 1
+                */
+
+                if (column === 0) {
+                    square.dataset.rank =
+                        boardRanks[row];
                 }
+
+
+                /*
+                File labels: A → H
+                */
+
+                if (row === 7) {
+                    square.dataset.file =
+                        boardFiles[column];
+                }
+
+
+                /*
+                Highlight previous move.
+                */
+
+                if (lastMove) {
+                    const isFrom =
+                        lastMove.fromRow === row &&
+                        lastMove.fromColumn === column;
+
+                    const isTo =
+                        lastMove.toRow === row &&
+                        lastMove.toColumn === column;
+
+                    if (isFrom || isTo) {
+                        square.classList.add(
+                            "last-move"
+                        );
+                    }
+                }
+
+
+                /*
+                Selected square.
+                */
 
                 if (
                     selectedSquare &&
                     selectedSquare.row === row &&
                     selectedSquare.column === column
                 ) {
-                    square.classList.add("selected");
+                    square.classList.add(
+                        "selected"
+                    );
                 }
 
-                const possibleMove = legalMoves.find(
-                    move =>
-                        move.row === row &&
-                        move.column === column
-                );
+
+                /*
+                Legal move highlights.
+                */
+
+                const possibleMove =
+                    legalMoves.find(
+                        move =>
+                            move.row === row &&
+                            move.column === column
+                    );
 
                 if (possibleMove) {
-                    if (board[row][column]) {
-                        square.classList.add("capture-move");
+                    const targetPiece =
+                        board[row][column];
+
+                    if (
+                        targetPiece ||
+                        possibleMove.special ===
+                            "enPassant"
+                    ) {
+                        square.classList.add(
+                            "capture-move"
+                        );
                     } else {
-                        square.classList.add("legal-move");
+                        square.classList.add(
+                            "legal-move"
+                        );
                     }
                 }
+
+
+                /*
+                Render SVG piece.
+                */
+
+                const piece =
+                    board[row][column];
+
+                if (piece) {
+                    const image =
+                        document.createElement("img");
+
+                    image.src =
+                        getPieceImagePath(piece);
+
+                    image.alt =
+                        `${piece.color} ${piece.type}`;
+
+                    image.classList.add(
+                        "piece-image"
+                    );
+
+                    image.draggable = false;
+
+                    square.appendChild(image);
+                }
+
 
                 square.addEventListener(
                     "click",
@@ -160,9 +350,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+
     /*
     ============================================================
-    CLICKING
+    CLICK HANDLING
     ============================================================
     */
 
@@ -171,17 +362,29 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const row = Number(event.currentTarget.dataset.row);
-        const column = Number(
-            event.currentTarget.dataset.column
-        );
+        const row =
+            Number(
+                event.currentTarget.dataset.row
+            );
 
-        const clickedPiece = board[row][column];
+        const column =
+            Number(
+                event.currentTarget.dataset.column
+            );
+
+        const clickedPiece =
+            board[row][column];
+
+
+        /*
+        Nothing selected yet.
+        */
 
         if (!selectedSquare) {
             if (
                 clickedPiece &&
-                clickedPiece.color === currentTurn
+                clickedPiece.color ===
+                    currentTurn
             ) {
                 selectedSquare = {
                     row,
@@ -194,14 +397,28 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const selectedPiece =
-            board[selectedSquare.row][
-                selectedSquare.column
-            ];
 
         /*
-        Selecting another piece of the same color.
+        Click the selected square again
+        to deselect.
         */
+
+        if (
+            selectedSquare.row === row &&
+            selectedSquare.column === column
+        ) {
+            selectedSquare = null;
+
+            createBoard();
+
+            return;
+        }
+
+
+        /*
+        Select another friendly piece.
+        */
+
         if (
             clickedPiece &&
             clickedPiece.color === currentTurn
@@ -216,20 +433,32 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const legalMoves = getLegalMoves(
-            selectedSquare.row,
-            selectedSquare.column
-        );
 
-        const chosenMove = legalMoves.find(
-            move =>
-                move.row === row &&
-                move.column === column
-        );
+        /*
+        Find whether destination is legal.
+        */
+
+        const legalMoves =
+            getLegalMoves(
+                selectedSquare.row,
+                selectedSquare.column
+            );
+
+        const chosenMove =
+            legalMoves.find(
+                move =>
+                    move.row === row &&
+                    move.column === column
+            );
 
         if (!chosenMove) {
             return;
         }
+
+
+        /*
+        Execute move.
+        */
 
         makeMove(
             selectedSquare.row,
@@ -244,35 +473,40 @@ document.addEventListener("DOMContentLoaded", function () {
         evaluateGameState();
     }
 
+
     /*
     ============================================================
-    LEGAL MOVES
+    LEGAL MOVE GENERATION
     ============================================================
     */
 
     function getLegalMoves(row, column) {
-        const piece = board[row][column];
+        const piece =
+            board[row][column];
 
         if (!piece) {
             return [];
         }
 
-        const pseudoMoves = getPseudoLegalMoves(
-            board,
-            row,
-            column,
-            piece
-        );
-
-        return pseudoMoves.filter(move => {
-            return !wouldLeaveKingInCheck(
+        const pseudoMoves =
+            getPseudoLegalMoves(
+                board,
                 row,
                 column,
-                move,
-                piece.color
+                piece
             );
-        });
+
+        return pseudoMoves.filter(
+            move =>
+                !wouldLeaveKingInCheck(
+                    row,
+                    column,
+                    move,
+                    piece.color
+                )
+        );
     }
+
 
     function getPseudoLegalMoves(
         boardState,
@@ -334,9 +568,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+
     /*
     ============================================================
-    PAWN
+    PAWN MOVEMENT
     ============================================================
     */
 
@@ -349,34 +584,55 @@ document.addEventListener("DOMContentLoaded", function () {
         const moves = [];
 
         const direction =
-            piece.color === "white" ? -1 : 1;
+            piece.color === "white"
+                ? -1
+                : 1;
 
         const startingRow =
-            piece.color === "white" ? 6 : 1;
+            piece.color === "white"
+                ? 6
+                : 1;
 
-        const oneStepRow = row + direction;
+        const oneStepRow =
+            row + direction;
+
 
         /*
-        One square forward.
+        Move one square forward.
         */
+
         if (
-            isInsideBoard(oneStepRow, column) &&
-            boardState[oneStepRow][column] === null
+            isInsideBoard(
+                oneStepRow,
+                column
+            ) &&
+            boardState[
+                oneStepRow
+            ][
+                column
+            ] === null
         ) {
             moves.push({
                 row: oneStepRow,
                 column
             });
 
+
             /*
-            Two squares forward from starting position.
+            Move two squares from
+            starting position.
             */
+
             const twoStepRow =
                 row + direction * 2;
 
             if (
                 row === startingRow &&
-                boardState[twoStepRow][column] === null
+                boardState[
+                    twoStepRow
+                ][
+                    column
+                ] === null
             ) {
                 moves.push({
                     row: twoStepRow,
@@ -385,15 +641,17 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        /*
-        Normal diagonal captures.
-        */
-        for (const offset of [-1, 1]) {
-            const captureColumn =
-                column + offset;
 
+        /*
+        Normal pawn captures.
+        */
+
+        for (const offset of [-1, 1]) {
             const captureRow =
                 row + direction;
+
+            const captureColumn =
+                column + offset;
 
             if (
                 !isInsideBoard(
@@ -405,7 +663,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const target =
-                boardState[captureRow][captureColumn];
+                boardState[
+                    captureRow
+                ][
+                    captureColumn
+                ];
 
             if (
                 target &&
@@ -418,12 +680,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+
         /*
         En passant.
         */
+
         if (enPassantTarget) {
             if (
-                enPassantTarget.color !== piece.color &&
+                enPassantTarget.color !==
+                    piece.color &&
                 row + direction ===
                     enPassantTarget.row &&
                 Math.abs(
@@ -440,16 +705,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (
                     capturedPawn &&
-                    capturedPawn.type === "pawn" &&
-                    capturedPawn.color !== piece.color
+                    capturedPawn.type ===
+                        "pawn" &&
+                    capturedPawn.color !==
+                        piece.color
                 ) {
                     moves.push({
-                        row: enPassantTarget.row,
+                        row:
+                            enPassantTarget.row,
+
                         column:
                             enPassantTarget.column,
-                        special: "enPassant",
+
+                        special:
+                            "enPassant",
+
                         captureRow:
                             enPassantTarget.pawnRow,
+
                         captureColumn:
                             enPassantTarget.pawnColumn
                     });
@@ -460,9 +733,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return moves;
     }
 
+
     /*
     ============================================================
-    ROOK
+    ROOK MOVEMENT
     ============================================================
     */
 
@@ -472,25 +746,24 @@ document.addEventListener("DOMContentLoaded", function () {
         column,
         piece
     ) {
-        const directions = [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1]
-        ];
-
         return getSlidingMoves(
             boardState,
             row,
             column,
             piece,
-            directions
+            [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1]
+            ]
         );
     }
 
+
     /*
     ============================================================
-    BISHOP
+    BISHOP MOVEMENT
     ============================================================
     */
 
@@ -500,25 +773,24 @@ document.addEventListener("DOMContentLoaded", function () {
         column,
         piece
     ) {
-        const directions = [
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-            [1, 1]
-        ];
-
         return getSlidingMoves(
             boardState,
             row,
             column,
             piece,
-            directions
+            [
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            ]
         );
     }
 
+
     /*
     ============================================================
-    QUEEN
+    QUEEN MOVEMENT
     ============================================================
     */
 
@@ -528,25 +800,24 @@ document.addEventListener("DOMContentLoaded", function () {
         column,
         piece
     ) {
-        const directions = [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1],
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-            [1, 1]
-        ];
-
         return getSlidingMoves(
             boardState,
             row,
             column,
             piece,
-            directions
+            [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1],
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            ]
         );
     }
+
 
     /*
     ============================================================
@@ -563,9 +834,12 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
         const moves = [];
 
-        for (const [rowDirection, columnDirection]
-            of directions) {
-
+        for (
+            const [
+                rowDirection,
+                columnDirection
+            ] of directions
+        ) {
             let newRow =
                 row + rowDirection;
 
@@ -579,7 +853,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 )
             ) {
                 const target =
-                    boardState[newRow][newColumn];
+                    boardState[
+                        newRow
+                    ][
+                        newColumn
+                    ];
 
                 if (!target) {
                     moves.push({
@@ -588,7 +866,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                 } else {
                     if (
-                        target.color !== piece.color
+                        target.color !==
+                            piece.color
                     ) {
                         moves.push({
                             row: newRow,
@@ -599,17 +878,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     break;
                 }
 
-                newRow += rowDirection;
-                newColumn += columnDirection;
+                newRow +=
+                    rowDirection;
+
+                newColumn +=
+                    columnDirection;
             }
         }
 
         return moves;
     }
 
+
     /*
     ============================================================
-    KNIGHT
+    KNIGHT MOVEMENT
     ============================================================
     */
 
@@ -633,8 +916,10 @@ document.addEventListener("DOMContentLoaded", function () {
         ];
 
         for (
-            const [rowOffset, columnOffset]
-            of offsets
+            const [
+                rowOffset,
+                columnOffset
+            ] of offsets
         ) {
             const newRow =
                 row + rowOffset;
@@ -652,7 +937,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const target =
-                boardState[newRow][newColumn];
+                boardState[
+                    newRow
+                ][
+                    newColumn
+                ];
 
             if (
                 !target ||
@@ -668,9 +957,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return moves;
     }
 
+
     /*
     ============================================================
-    KING
+    KING MOVEMENT
     ============================================================
     */
 
@@ -715,11 +1005,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 const target =
-                    boardState[newRow][newColumn];
+                    boardState[
+                        newRow
+                    ][
+                        newColumn
+                    ];
 
                 if (
                     !target ||
-                    target.color !== piece.color
+                    target.color !==
+                        piece.color
                 ) {
                     moves.push({
                         row: newRow,
@@ -729,9 +1024,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+
         /*
-        Castling only applies to the real board.
+        Castling.
         */
+
         if (boardState === board) {
             if (
                 canCastle(
@@ -767,6 +1064,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return moves;
     }
 
+
     /*
     ============================================================
     CASTLING
@@ -775,7 +1073,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function canCastle(color, side) {
         const row =
-            color === "white" ? 7 : 0;
+            color === "white"
+                ? 7
+                : 0;
 
         const king =
             board[row][4];
@@ -789,9 +1089,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return false;
         }
 
+
         /*
-        Cannot castle while currently in check.
+        Cannot castle while in check.
         */
+
         if (
             isKingInCheck(
                 board,
@@ -803,6 +1105,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const enemy =
             oppositeColor(color);
+
+
+        /*
+        Kingside castle.
+        */
 
         if (side === "kingSide") {
             const rook =
@@ -843,6 +1150,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             return true;
         }
+
+
+        /*
+        Queenside castle.
+        */
 
         if (side === "queenSide") {
             const rook =
@@ -888,9 +1200,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return false;
     }
 
+
     /*
     ============================================================
-    CHECK VALIDATION
+    KING SAFETY
     ============================================================
     */
 
@@ -916,6 +1229,7 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
+
     function isKingInCheck(
         boardState,
         color
@@ -938,18 +1252,27 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
+
     function findKing(
         boardState,
         color
     ) {
-        for (let row = 0; row < 8; row++) {
+        for (
+            let row = 0;
+            row < 8;
+            row++
+        ) {
             for (
                 let column = 0;
                 column < 8;
                 column++
             ) {
                 const piece =
-                    boardState[row][column];
+                    boardState[
+                        row
+                    ][
+                        column
+                    ];
 
                 if (
                     piece &&
@@ -967,9 +1290,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return null;
     }
 
+
     /*
     ============================================================
-    SQUARE ATTACK DETECTION
+    ATTACK DETECTION
     ============================================================
     */
 
@@ -1013,12 +1337,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (
                 piece &&
-                piece.color === attackingColor &&
+                piece.color ===
+                    attackingColor &&
                 piece.type === "pawn"
             ) {
                 return true;
             }
         }
+
 
         /*
         Knight attacks.
@@ -1036,8 +1362,10 @@ document.addEventListener("DOMContentLoaded", function () {
         ];
 
         for (
-            const [rowOffset, columnOffset]
-            of knightOffsets
+            const [
+                rowOffset,
+                columnOffset
+            ] of knightOffsets
         ) {
             const sourceRow =
                 row + rowOffset;
@@ -1063,12 +1391,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (
                 piece &&
-                piece.color === attackingColor &&
+                piece.color ===
+                    attackingColor &&
                 piece.type === "knight"
             ) {
                 return true;
             }
         }
+
 
         /*
         King attacks.
@@ -1115,7 +1445,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (
                     piece &&
-                    piece.color === attackingColor &&
+                    piece.color ===
+                        attackingColor &&
                     piece.type === "king"
                 ) {
                     return true;
@@ -1123,16 +1454,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        /*
-        Rook / Queen straight attacks.
-        */
 
-        const straightDirections = [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1]
-        ];
+        /*
+        Rook and Queen straight attacks.
+        */
 
         if (
             hasSlidingAttack(
@@ -1140,23 +1465,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 row,
                 column,
                 attackingColor,
-                straightDirections,
-                ["rook", "queen"]
+                [
+                    [-1, 0],
+                    [1, 0],
+                    [0, -1],
+                    [0, 1]
+                ],
+                [
+                    "rook",
+                    "queen"
+                ]
             )
         ) {
             return true;
         }
 
-        /*
-        Bishop / Queen diagonal attacks.
-        */
 
-        const diagonalDirections = [
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-            [1, 1]
-        ];
+        /*
+        Bishop and Queen diagonal attacks.
+        */
 
         if (
             hasSlidingAttack(
@@ -1164,8 +1491,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 row,
                 column,
                 attackingColor,
-                diagonalDirections,
-                ["bishop", "queen"]
+                [
+                    [-1, -1],
+                    [-1, 1],
+                    [1, -1],
+                    [1, 1]
+                ],
+                [
+                    "bishop",
+                    "queen"
+                ]
             )
         ) {
             return true;
@@ -1173,6 +1508,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         return false;
     }
+
 
     function hasSlidingAttack(
         boardState,
@@ -1183,14 +1519,17 @@ document.addEventListener("DOMContentLoaded", function () {
         allowedTypes
     ) {
         for (
-            const [rowDirection, columnDirection]
-            of directions
+            const [
+                rowDirection,
+                columnDirection
+            ] of directions
         ) {
             let newRow =
                 row + rowDirection;
 
             let newColumn =
-                column + columnDirection;
+                column +
+                columnDirection;
 
             while (
                 isInsideBoard(
@@ -1199,17 +1538,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 )
             ) {
                 const piece =
-                    boardState[newRow][newColumn];
+                    boardState[
+                        newRow
+                    ][
+                        newColumn
+                    ];
 
                 if (!piece) {
-                    newRow += rowDirection;
-                    newColumn += columnDirection;
+                    newRow +=
+                        rowDirection;
+
+                    newColumn +=
+                        columnDirection;
 
                     continue;
                 }
 
                 if (
-                    piece.color === attackingColor &&
+                    piece.color ===
+                        attackingColor &&
                     allowedTypes.includes(
                         piece.type
                     )
@@ -1224,9 +1571,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return false;
     }
 
+
     /*
     ============================================================
-    EXECUTE MOVE
+    EXECUTE REAL MOVE
     ============================================================
     */
 
@@ -1238,15 +1586,31 @@ document.addEventListener("DOMContentLoaded", function () {
         const piece =
             board[fromRow][fromColumn];
 
+        if (!piece) {
+            return;
+        }
+
+        const movingColor =
+            piece.color;
+
+        const originalPieceType =
+            piece.type;
+
         let capturedPiece =
-            board[move.row][move.column];
+            board[
+                move.row
+            ][
+                move.column
+            ];
+
 
         /*
         En passant capture.
         */
 
         if (
-            move.special === "enPassant"
+            move.special ===
+                "enPassant"
         ) {
             capturedPiece =
                 board[
@@ -1262,12 +1626,42 @@ document.addEventListener("DOMContentLoaded", function () {
             ] = null;
         }
 
+
         /*
-        50-move counter.
+        Track captured pieces.
+        */
+
+        if (capturedPiece) {
+            const capturedCopy = {
+                type:
+                    capturedPiece.type,
+
+                color:
+                    capturedPiece.color
+            };
+
+            if (
+                capturedPiece.color ===
+                    "white"
+            ) {
+                capturedWhitePieces.push(
+                    capturedCopy
+                );
+            } else {
+                capturedBlackPieces.push(
+                    capturedCopy
+                );
+            }
+        }
+
+
+        /*
+        50 move counter.
         */
 
         if (
-            piece.type === "pawn" ||
+            originalPieceType ===
+                "pawn" ||
             capturedPiece
         ) {
             halfMoveClock = 0;
@@ -1275,18 +1669,31 @@ document.addEventListener("DOMContentLoaded", function () {
             halfMoveClock++;
         }
 
-        board[move.row][move.column] =
-            piece;
 
-        board[fromRow][fromColumn] =
-            null;
+        /*
+        Move piece.
+        */
+
+        board[
+            move.row
+        ][
+            move.column
+        ] = piece;
+
+        board[
+            fromRow
+        ][
+            fromColumn
+        ] = null;
+
 
         /*
         Castling rook movement.
         */
 
         if (
-            move.special === "castle"
+            move.special ===
+                "castle"
         ) {
             const rook =
                 board[
@@ -1312,57 +1719,170 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+
         piece.hasMoved = true;
+
 
         /*
         Promotion.
         */
 
+        let promotionPiece = null;
+
         if (
-            piece.type === "pawn" &&
+            originalPieceType === "pawn" &&
             (
                 move.row === 0 ||
                 move.row === 7
             )
         ) {
-            piece.type =
+            promotionPiece =
                 choosePromotionPiece();
+
+            piece.type =
+                promotionPiece;
         }
 
+
         /*
-        Reset old en passant.
+        Save previous en passant status.
         */
 
         enPassantTarget = null;
 
+
         /*
-        Create new en passant possibility
-        after a pawn moves two squares.
+        Create new en passant target
+        if pawn moved two squares.
         */
 
         if (
-            piece.type === "pawn" &&
+            originalPieceType === "pawn" &&
             Math.abs(
                 move.row - fromRow
             ) === 2
         ) {
             enPassantTarget = {
                 row:
-                    (move.row + fromRow) / 2,
-                column: move.column,
-                pawnRow: move.row,
-                pawnColumn: move.column,
-                color: piece.color
+                    (
+                        move.row +
+                        fromRow
+                    ) / 2,
+
+                column:
+                    move.column,
+
+                pawnRow:
+                    move.row,
+
+                pawnColumn:
+                    move.column,
+
+                color:
+                    movingColor
             };
         }
 
+
+        /*
+        Store move for highlighting.
+        */
+
+        lastMove = {
+            fromRow,
+            fromColumn,
+            toRow: move.row,
+            toColumn: move.column
+        };
+
+
+        /*
+        Change turn before determining
+        check or checkmate notation.
+        */
+
         currentTurn =
-            oppositeColor(currentTurn);
+            oppositeColor(
+                currentTurn
+            );
+
+
+        /*
+        Generate notation.
+        */
+
+        let notation =
+            createMoveNotation({
+                originalPieceType,
+                movingColor,
+                fromRow,
+                fromColumn,
+                move,
+                capturedPiece,
+                promotionPiece
+            });
+
+
+        /*
+        Add + or #.
+        */
+
+        const opponentInCheck =
+            isKingInCheck(
+                board,
+                currentTurn
+            );
+
+        const opponentHasMove =
+            playerHasLegalMove(
+                currentTurn
+            );
+
+        if (
+            opponentInCheck &&
+            !opponentHasMove
+        ) {
+            notation += "#";
+        } else if (opponentInCheck) {
+            notation += "+";
+        }
+
+
+        /*
+        Save move history.
+        */
+
+        addMoveToHistory(
+            movingColor,
+            notation
+        );
+
+
+        /*
+        Position history.
+        */
 
         recordPosition();
 
+
+        /*
+        Update UI.
+        */
+
         updateTurnDisplay();
+
+        renderCapturedPieces();
+
+        renderMoveHistory();
     }
+
+
+    /*
+    ============================================================
+    TEMPORARY MOVE
+    Used to check king safety.
+    ============================================================
+    */
 
     function executeMoveOnBoard(
         boardState,
@@ -1371,7 +1891,11 @@ document.addEventListener("DOMContentLoaded", function () {
         move
     ) {
         const piece =
-            boardState[fromRow][fromColumn];
+            boardState[
+                fromRow
+            ][
+                fromColumn
+            ];
 
         boardState[
             move.row
@@ -1385,8 +1909,10 @@ document.addEventListener("DOMContentLoaded", function () {
             fromColumn
         ] = null;
 
+
         if (
-            move.special === "enPassant"
+            move.special ===
+                "enPassant"
         ) {
             boardState[
                 move.captureRow
@@ -1395,8 +1921,10 @@ document.addEventListener("DOMContentLoaded", function () {
             ] = null;
         }
 
+
         if (
-            move.special === "castle"
+            move.special ===
+                "castle"
         ) {
             const rook =
                 boardState[
@@ -1419,26 +1947,30 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+
     /*
     ============================================================
-    PROMOTION
+    PAWN PROMOTION
     ============================================================
     */
 
     function choosePromotionPiece() {
-        const answer = window.prompt(
-            "Promote pawn to: queen, rook, bishop or knight",
-            "queen"
-        );
+        const answer =
+            window.prompt(
+                "Promote pawn to queen, rook, bishop or knight:",
+                "queen"
+            );
 
         if (!answer) {
             return "queen";
         }
 
         const value =
-            answer.trim().toLowerCase();
+            answer
+                .trim()
+                .toLowerCase();
 
-        const promotionOptions = {
+        const options = {
             q: "queen",
             queen: "queen",
 
@@ -1453,14 +1985,371 @@ document.addEventListener("DOMContentLoaded", function () {
         };
 
         return (
-            promotionOptions[value] ||
+            options[value] ||
             "queen"
         );
     }
 
+
     /*
     ============================================================
-    CHECKMATE / STALEMATE / DRAW
+    MOVE NOTATION
+    ============================================================
+    */
+
+    function getSquareName(
+        row,
+        column
+    ) {
+        const files = [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h"
+        ];
+
+        const rank =
+            8 - row;
+
+        return (
+            `${files[column]}${rank}`
+        );
+    }
+
+
+    function getPieceLetter(type) {
+        const letters = {
+            king: "K",
+            queen: "Q",
+            rook: "R",
+            bishop: "B",
+            knight: "N",
+            pawn: ""
+        };
+
+        return (
+            letters[type] || ""
+        );
+    }
+
+
+    function createMoveNotation({
+        originalPieceType,
+        fromRow,
+        fromColumn,
+        move,
+        capturedPiece,
+        promotionPiece
+    }) {
+        /*
+        Castling.
+        */
+
+        if (
+            move.special ===
+                "castle"
+        ) {
+            if (move.column === 6) {
+                return "O-O";
+            }
+
+            return "O-O-O";
+        }
+
+
+        const destination =
+            getSquareName(
+                move.row,
+                move.column
+            );
+
+        const isCapture =
+            Boolean(
+                capturedPiece
+            ) ||
+            move.special ===
+                "enPassant";
+
+
+        /*
+        Pawn notation.
+        */
+
+        if (
+            originalPieceType ===
+                "pawn"
+        ) {
+            let notation = "";
+
+            if (isCapture) {
+                const fromFile =
+                    getSquareName(
+                        fromRow,
+                        fromColumn
+                    )[0];
+
+                notation +=
+                    `${fromFile}x`;
+            }
+
+            notation += destination;
+
+            if (promotionPiece) {
+                notation +=
+                    "=" +
+                    getPieceLetter(
+                        promotionPiece
+                    );
+            }
+
+            return notation;
+        }
+
+
+        /*
+        Other pieces.
+        */
+
+        const pieceLetter =
+            getPieceLetter(
+                originalPieceType
+            );
+
+        return (
+            pieceLetter +
+            (isCapture ? "x" : "") +
+            destination
+        );
+    }
+
+
+    /*
+    ============================================================
+    MOVE HISTORY
+    ============================================================
+    */
+
+    function addMoveToHistory(
+        color,
+        notation
+    ) {
+        if (color === "white") {
+            moveHistory.push({
+                moveNumber:
+                    fullMoveNumber,
+
+                white:
+                    notation,
+
+                black:
+                    ""
+            });
+
+            return;
+        }
+
+
+        /*
+        Black move.
+        */
+
+        let lastEntry =
+            moveHistory[
+                moveHistory.length - 1
+            ];
+
+        if (!lastEntry) {
+            lastEntry = {
+                moveNumber:
+                    fullMoveNumber,
+
+                white:
+                    "",
+
+                black:
+                    notation
+            };
+
+            moveHistory.push(
+                lastEntry
+            );
+        } else {
+            lastEntry.black =
+                notation;
+        }
+
+        fullMoveNumber++;
+    }
+
+
+    function renderMoveHistory() {
+        moveHistoryContainer.innerHTML =
+            "";
+
+        if (
+            moveHistory.length === 0
+        ) {
+            const empty =
+                document.createElement("p");
+
+            empty.classList.add(
+                "move-history-empty"
+            );
+
+            empty.textContent =
+                "No moves yet.";
+
+            moveHistoryContainer.appendChild(
+                empty
+            );
+
+            return;
+        }
+
+
+        moveHistory.forEach(move => {
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+            row.classList.add(
+                "move-row"
+            );
+
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+            number.classList.add(
+                "move-number"
+            );
+
+            number.textContent =
+                `${move.moveNumber}.`;
+
+
+            const white =
+                document.createElement(
+                    "div"
+                );
+
+            white.classList.add(
+                "move-cell"
+            );
+
+            white.textContent =
+                move.white || "";
+
+
+            const black =
+                document.createElement(
+                    "div"
+                );
+
+            black.classList.add(
+                "move-cell"
+            );
+
+            black.textContent =
+                move.black || "";
+
+
+            row.appendChild(number);
+            row.appendChild(white);
+            row.appendChild(black);
+
+            moveHistoryContainer.appendChild(
+                row
+            );
+        });
+
+
+        /*
+        Scroll to latest move.
+        */
+
+        moveHistoryContainer.scrollTop =
+            moveHistoryContainer.scrollHeight;
+    }
+
+
+    /*
+    ============================================================
+    CAPTURED PIECES
+    ============================================================
+    */
+
+    function renderCapturedPieces() {
+        capturedWhiteContainer.innerHTML =
+            "";
+
+        capturedBlackContainer.innerHTML =
+            "";
+
+
+        capturedWhitePieces.forEach(
+            piece => {
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+
+                image.src =
+                    getPieceImagePath(
+                        piece
+                    );
+
+                image.alt =
+                    `Captured white ${piece.type}`;
+
+                image.classList.add(
+                    "captured-piece"
+                );
+
+                capturedWhiteContainer.appendChild(
+                    image
+                );
+            }
+        );
+
+
+        capturedBlackPieces.forEach(
+            piece => {
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+
+                image.src =
+                    getPieceImagePath(
+                        piece
+                    );
+
+                image.alt =
+                    `Captured black ${piece.type}`;
+
+                image.classList.add(
+                    "captured-piece"
+                );
+
+                capturedBlackContainer.appendChild(
+                    image
+                );
+            }
+        );
+    }
+
+
+    /*
+    ============================================================
+    CHECKMATE / STALEMATE / DRAWS
     ============================================================
     */
 
@@ -1475,6 +2364,7 @@ document.addEventListener("DOMContentLoaded", function () {
             playerHasLegalMove(
                 currentTurn
             );
+
 
         /*
         Checkmate.
@@ -1497,6 +2387,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+
         /*
         Stalemate.
         */
@@ -1513,9 +2404,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+
         /*
-        50-move rule.
-        100 half-moves = 50 moves by each side.
+        50 move rule.
         */
 
         if (
@@ -1529,6 +2420,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+
         /*
         Threefold repetition.
         */
@@ -1536,12 +2428,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const positionKey =
             getPositionKey();
 
+        const repetitions =
+            positionHistory.get(
+                positionKey
+            ) || 0;
+
         if (
-            (
-                positionHistory.get(
-                    positionKey
-                ) || 0
-            ) >= 3
+            repetitions >= 3
         ) {
             turnDisplay.textContent =
                 "Draw by threefold repetition";
@@ -1550,6 +2443,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             return;
         }
+
 
         /*
         Insufficient material.
@@ -1566,15 +2460,31 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+
+        /*
+        Check.
+        */
+
         if (inCheck) {
             turnDisplay.textContent =
                 `${capitalize(currentTurn)} — Check`;
-        } else {
-            updateTurnDisplay();
+
+            return;
         }
+
+        updateTurnDisplay();
     }
 
-    function playerHasLegalMove(color) {
+
+    /*
+    ============================================================
+    DOES PLAYER HAVE A LEGAL MOVE?
+    ============================================================
+    */
+
+    function playerHasLegalMove(
+        color
+    ) {
         for (
             let row = 0;
             row < 8;
@@ -1586,29 +2496,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 column++
             ) {
                 const piece =
-                    board[row][column];
+                    board[
+                        row
+                    ][
+                        column
+                    ];
 
                 if (
-                    piece &&
-                    piece.color === color
+                    !piece ||
+                    piece.color !== color
                 ) {
-                    const moves =
-                        getLegalMoves(
-                            row,
-                            column
-                        );
+                    continue;
+                }
 
-                    if (
-                        moves.length > 0
-                    ) {
-                        return true;
-                    }
+                const moves =
+                    getLegalMoves(
+                        row,
+                        column
+                    );
+
+                if (
+                    moves.length > 0
+                ) {
+                    return true;
                 }
             }
         }
 
         return false;
     }
+
 
     /*
     ============================================================
@@ -1620,16 +2537,39 @@ document.addEventListener("DOMContentLoaded", function () {
         const key =
             getPositionKey();
 
-        const currentCount =
-            positionHistory.get(key) || 0;
+        const previousCount =
+            positionHistory.get(
+                key
+            ) || 0;
 
         positionHistory.set(
             key,
-            currentCount + 1
+            previousCount + 1
         );
     }
 
+
     function getPositionKey() {
+        const pieceCodes = {
+            white: {
+                king: "K",
+                queen: "Q",
+                rook: "R",
+                bishop: "B",
+                knight: "N",
+                pawn: "P"
+            },
+
+            black: {
+                king: "k",
+                queen: "q",
+                rook: "r",
+                bishop: "b",
+                knight: "n",
+                pawn: "p"
+            }
+        };
+
         let key = "";
 
         for (
@@ -1643,35 +2583,57 @@ document.addEventListener("DOMContentLoaded", function () {
                 column++
             ) {
                 const piece =
-                    board[row][column];
+                    board[
+                        row
+                    ][
+                        column
+                    ];
 
                 if (!piece) {
-                    key += "--";
-                    continue;
+                    key += "-";
+                } else {
+                    key +=
+                        pieceCodes[
+                            piece.color
+                        ][
+                            piece.type
+                        ];
                 }
-
-                key +=
-                    piece.color[0] +
-                    piece.type[0];
             }
         }
 
-        key += `-${currentTurn}`;
+        key +=
+            `|${currentTurn}`;
 
-        key += `-${getCastlingRights()}`;
+        key +=
+            `|${getCastlingRights()}`;
+
 
         if (enPassantTarget) {
             key +=
-                `-ep${enPassantTarget.row}${enPassantTarget.column}`;
+                `|${enPassantTarget.row},` +
+                `${enPassantTarget.column}`;
         } else {
-            key += "-ep-";
+            key += "|-";
         }
 
         return key;
     }
 
+
+    /*
+    ============================================================
+    CASTLING RIGHTS
+    ============================================================
+    */
+
     function getCastlingRights() {
         let rights = "";
+
+
+        /*
+        White.
+        */
 
         const whiteKing =
             board[7][4];
@@ -1682,30 +2644,35 @@ document.addEventListener("DOMContentLoaded", function () {
             whiteKing.color === "white" &&
             !whiteKing.hasMoved
         ) {
-            const whiteKingRook =
+            const kingRook =
                 board[7][7];
 
-            const whiteQueenRook =
+            const queenRook =
                 board[7][0];
 
             if (
-                whiteKingRook &&
-                whiteKingRook.type === "rook" &&
-                whiteKingRook.color === "white" &&
-                !whiteKingRook.hasMoved
+                kingRook &&
+                kingRook.type === "rook" &&
+                kingRook.color === "white" &&
+                !kingRook.hasMoved
             ) {
                 rights += "K";
             }
 
             if (
-                whiteQueenRook &&
-                whiteQueenRook.type === "rook" &&
-                whiteQueenRook.color === "white" &&
-                !whiteQueenRook.hasMoved
+                queenRook &&
+                queenRook.type === "rook" &&
+                queenRook.color === "white" &&
+                !queenRook.hasMoved
             ) {
                 rights += "Q";
             }
         }
+
+
+        /*
+        Black.
+        */
 
         const blackKing =
             board[0][4];
@@ -1716,26 +2683,26 @@ document.addEventListener("DOMContentLoaded", function () {
             blackKing.color === "black" &&
             !blackKing.hasMoved
         ) {
-            const blackKingRook =
+            const kingRook =
                 board[0][7];
 
-            const blackQueenRook =
+            const queenRook =
                 board[0][0];
 
             if (
-                blackKingRook &&
-                blackKingRook.type === "rook" &&
-                blackKingRook.color === "black" &&
-                !blackKingRook.hasMoved
+                kingRook &&
+                kingRook.type === "rook" &&
+                kingRook.color === "black" &&
+                !kingRook.hasMoved
             ) {
                 rights += "k";
             }
 
             if (
-                blackQueenRook &&
-                blackQueenRook.type === "rook" &&
-                blackQueenRook.color === "black" &&
-                !blackQueenRook.hasMoved
+                queenRook &&
+                queenRook.type === "rook" &&
+                queenRook.color === "black" &&
+                !queenRook.hasMoved
             ) {
                 rights += "q";
             }
@@ -1744,6 +2711,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return rights || "-";
     }
 
+
     /*
     ============================================================
     INSUFFICIENT MATERIAL
@@ -1751,7 +2719,7 @@ document.addEventListener("DOMContentLoaded", function () {
     */
 
     function isInsufficientMaterial() {
-        const pieces = [];
+        const remainingPieces = [];
 
         for (
             let row = 0;
@@ -1764,14 +2732,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 column++
             ) {
                 const piece =
-                    board[row][column];
+                    board[
+                        row
+                    ][
+                        column
+                    ];
 
                 if (
                     piece &&
                     piece.type !== "king"
                 ) {
-                    pieces.push({
-                        ...piece,
+                    remainingPieces.push({
+                        type:
+                            piece.type,
+
+                        color:
+                            piece.color,
+
                         row,
                         column
                     });
@@ -1779,57 +2756,70 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+
         /*
         King vs King.
         */
+
         if (
-            pieces.length === 0
+            remainingPieces.length === 0
         ) {
             return true;
         }
+
 
         /*
         King + Bishop vs King
-        or
-        King + Knight vs King.
+        King + Knight vs King
         */
+
         if (
-            pieces.length === 1 &&
-            (
-                pieces[0].type === "bishop" ||
-                pieces[0].type === "knight"
-            )
+            remainingPieces.length === 1
         ) {
-            return true;
+            const type =
+                remainingPieces[0].type;
+
+            return (
+                type === "bishop" ||
+                type === "knight"
+            );
         }
 
+
         /*
-        King + Bishop vs King + Bishop,
-        when both bishops are on the same
-        color squares.
+        King + Bishop vs
+        King + Bishop where bishops
+        are on same colored squares.
         */
+
         if (
-            pieces.length === 2 &&
-            pieces.every(
+            remainingPieces.length === 2 &&
+            remainingPieces.every(
                 piece =>
-                    piece.type === "bishop"
+                    piece.type ===
+                        "bishop"
             )
         ) {
-            const firstSquareColor =
+            const bishopA =
+                remainingPieces[0];
+
+            const bishopB =
+                remainingPieces[1];
+
+            const colorA =
                 (
-                    pieces[0].row +
-                    pieces[0].column
+                    bishopA.row +
+                    bishopA.column
                 ) % 2;
 
-            const secondSquareColor =
+            const colorB =
                 (
-                    pieces[1].row +
-                    pieces[1].column
+                    bishopB.row +
+                    bishopB.column
                 ) % 2;
 
             if (
-                firstSquareColor ===
-                secondSquareColor
+                colorA === colorB
             ) {
                 return true;
             }
@@ -1837,6 +2827,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         return false;
     }
+
 
     /*
     ============================================================
@@ -1847,14 +2838,19 @@ document.addEventListener("DOMContentLoaded", function () {
     function cloneBoard(
         boardState
     ) {
-        return boardState.map(row =>
-            row.map(piece =>
-                piece
-                    ? { ...piece }
-                    : null
-            )
+        return boardState.map(
+            row =>
+                row.map(
+                    piece =>
+                        piece
+                            ? {
+                                ...piece
+                            }
+                            : null
+                )
         );
     }
+
 
     function isInsideBoard(
         row,
@@ -1868,7 +2864,10 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function oppositeColor(color) {
+
+    function oppositeColor(
+        color
+    ) {
         return (
             color === "white"
                 ? "black"
@@ -1876,17 +2875,26 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function capitalize(value) {
+
+    function capitalize(
+        value
+    ) {
         return (
-            value.charAt(0).toUpperCase() +
+            value
+                .charAt(0)
+                .toUpperCase() +
             value.slice(1)
         );
     }
 
+
     function updateTurnDisplay() {
         turnDisplay.textContent =
-            capitalize(currentTurn);
+            capitalize(
+                currentTurn
+            );
     }
+
 
     /*
     ============================================================
@@ -1895,6 +2903,12 @@ document.addEventListener("DOMContentLoaded", function () {
     */
 
     recordPosition();
+
     updateTurnDisplay();
+
+    renderCapturedPieces();
+
+    renderMoveHistory();
+
     createBoard();
 });

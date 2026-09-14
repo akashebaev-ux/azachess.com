@@ -29,30 +29,44 @@
 
         <header class="page-header">
             <h1>AzaChess</h1>
-            <p>Play chess online</p>
+            <p>Premium online chess experience</p>
         </header>
 
-        <section class="game-container">
+        <section class="game-layout">
 
-            <div class="game-area">
+            <div class="board-column">
 
-                <div class="game-info">
+                <div class="status-bar card-panel">
                     <p>
                         Turn:
-                        <strong id="turn-display">
-                            White
-                        </strong>
+                        <strong id="turn-display">White</strong>
                     </p>
                 </div>
 
-                <div
-                    id="chessboard"
-                    class="chessboard"
-                    aria-label="Chess board"
-                >
+                <div class="captured-panel card-panel">
+                    <h2>Black pieces taken</h2>
+                    <div id="captured-black" class="captured-pieces"></div>
+                </div>
+
+                <div class="board-frame">
+                    <div
+                        id="chessboard"
+                        class="chessboard"
+                        aria-label="Chess board"
+                    ></div>
+                </div>
+
+                <div class="captured-panel card-panel">
+                    <h2>White pieces taken</h2>
+                    <div id="captured-white" class="captured-pieces"></div>
                 </div>
 
             </div>
+
+            <aside class="side-panel card-panel">
+                <h2>Move History</h2>
+                <div id="move-history" class="move-history"></div>
+            </aside>
 
         </section>
 

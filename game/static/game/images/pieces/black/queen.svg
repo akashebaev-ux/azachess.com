@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bodyGrad" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#4d4a49"/>
+      <stop offset="52%" stop-color="#121212"/>
+      <stop offset="100%" stop-color="#4d4a49"/>
+    </linearGradient>
+    <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0c68e"/>
+      <stop offset="45%" stop-color="#b47333"/>
+      <stop offset="100%" stop-color="#f3d1a1"/>
+    </linearGradient>
+    <linearGradient id="baseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6b4424"/>
+      <stop offset="50%" stop-color="#c58b52" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#6b4424"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="1.5" dy="2.2" stdDeviation="1.8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)" stroke="#050505" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    
+  <circle cx="29" cy="16" r="4" fill="url(#bronzeGrad)"/>
+  <circle cx="43" cy="11" r="4" fill="url(#bronzeGrad)"/>
+  <circle cx="57" cy="11" r="4" fill="url(#bronzeGrad)"/>
+  <circle cx="71" cy="16" r="4" fill="url(#bronzeGrad)"/>
+  <path d="M29 22 L36 44 C40 48 60 48 64 44 L71 22 L61 30 L50 18 L39 30 Z" fill="url(#bodyGrad)"/>
+  <path d="M34 44 H66 L62 54 H38 Z" fill="url(#bodyGrad)"/>
+  <path d="M37 54 C40 61 40 66 38 72 H62 C60 66 60 61 63 54 Z" fill="url(#bodyGrad)"/>
+  <path d="M36 49 C43 46 57 46 64 49" fill="none" stroke="url(#bronzeGrad)" stroke-width="1.4"/>
+  
+  <path d="M38 58 C42 63 46 64 50 60 C54 64 58 63 62 58" fill="none" stroke="url(#bronzeGrad)" stroke-width="1.7"/>
+  <path d="M34 60 C38 58 41 57 45 60" fill="none" stroke="url(#bronzeGrad)" stroke-width="1.2"/>
+  <path d="M66 60 C62 58 59 57 55 60" fill="none" stroke="url(#bronzeGrad)" stroke-width="1.2"/>
+
+  
+  <path d="M20 86 H80 L83 91 H17 Z" fill="url(#bodyGrad)"/>
+  <rect x="21" y="80" width="58" height="7" rx="3.5" fill="url(#bronzeGrad)"/>
+  <path d="M23 72 H77 L73 80 H27 Z" fill="url(#bodyGrad)"/>
+  <path d="M24 72 H76" fill="none" stroke="url(#bronzeGrad)" stroke-width="2"/>
+  <path d="M28 76 C38 79 62 79 72 76" fill="none" stroke="url(#bronzeGrad)" stroke-width="1.4" opacity="0.85"/>
+
+
+  </g>
+  <path d="M28 86 C41 88 59 88 72 86" fill="none" stroke="url(#baseGrad)" stroke-width="1.1" opacity="0.7"/>
+</svg>
