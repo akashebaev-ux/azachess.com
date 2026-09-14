@@ -1,70 +1,223 @@
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
 * {
     box-sizing: border-box;
 }
 
+html,
 body {
     margin: 0;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+
+    overflow: hidden;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
     background:
-        radial-gradient(circle at top, #4f2e18 0%, #1e1713 45%, #120d0a 100%);
+        radial-gradient(
+            circle at top,
+            #4f2e18 0%,
+            #1e1713 45%,
+            #120d0a 100%
+        );
+
     color: #f7e7c8;
 }
 
-.chess-page {
-    width: 100%;
-    max-width: 1450px;
-    margin: 0 auto;
-    padding: 28px 18px 40px;
+
+/* =========================================================
+   RESPONSIVE BOARD SIZE
+
+   Board reacts to BOTH screen width and screen height.
+   ========================================================= */
+
+:root {
+    --board-size:
+        min(
+            52vw,
+            calc(100dvh - 190px),
+            520px
+        );
 }
 
+
+/* =========================================================
+   MAIN PAGE
+   ========================================================= */
+
+.chess-page {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+    padding:
+        6px
+        10px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
 .page-header {
+    flex: 0 0 auto;
+
     text-align: center;
-    margin-bottom: 24px;
+
+    margin-bottom: 5px;
 }
 
 .page-header h1 {
     margin: 0;
-    font-size: 3rem;
+
+    font-size: 1.7rem;
+
+    line-height: 1.05;
+
     letter-spacing: 1px;
+
     color: #f5d29b;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+    text-shadow:
+        0 2px 10px
+        rgba(0, 0, 0, 0.35);
 }
 
 .page-header p {
-    margin: 10px 0 0;
+    margin:
+        2px
+        0
+        0;
+
+    font-size: 0.72rem;
+
     color: #e5c18d;
+
     opacity: 0.92;
 }
 
+
+/* =========================================================
+   MAIN GAME AREA
+   ========================================================= */
+
 .game-layout {
+    flex: 1;
+
+    min-height: 0;
+
     display: grid;
-    grid-template-columns: minmax(320px, 860px) minmax(280px, 360px);
-    gap: 24px;
-    align-items: start;
+
+    grid-template-columns:
+        auto
+        250px;
+
+    gap: 12px;
+
+    align-items: center;
+
     justify-content: center;
+
+    overflow: hidden;
 }
 
+
+/* =========================================================
+   LEFT BOARD COLUMN
+   ========================================================= */
+
 .board-column {
+    min-width: 0;
+    min-height: 0;
+
     display: flex;
+
     flex-direction: column;
-    gap: 16px;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    overflow: hidden;
 }
+
+
+/* =========================================================
+   COMMON PANEL DESIGN
+   ========================================================= */
 
 .card-panel {
     background:
-        linear-gradient(180deg, rgba(61, 37, 24, 0.94), rgba(29, 19, 13, 0.96));
-    border: 1px solid rgba(196, 131, 66, 0.45);
-    border-radius: 16px;
+        linear-gradient(
+            180deg,
+            rgba(61, 37, 24, 0.94),
+            rgba(29, 19, 13, 0.96)
+        );
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.45);
+
+    border-radius: 10px;
+
     box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.35),
-        inset 0 0 0 1px rgba(255, 222, 173, 0.04);
-    padding: 14px 16px;
+        0 6px 16px
+        rgba(0, 0, 0, 0.35),
+        inset
+        0 0 0 1px
+        rgba(255, 222, 173, 0.04);
+
+    padding:
+        5px
+        8px;
+}
+
+
+/* =========================================================
+   TURN PANEL
+   ========================================================= */
+
+.status-bar {
+    width:
+        calc(
+            var(--board-size) + 34px
+        );
+
+    max-width: 100%;
 }
 
 .status-bar p {
     margin: 0;
-    font-size: 1.1rem;
+
+    font-size: 0.82rem;
+
+    line-height: 1.15;
+
     color: #f3d7ac;
 }
 
@@ -72,228 +225,1142 @@ body {
     color: #ffd497;
 }
 
-.captured-panel h2,
-.side-panel h2 {
-    margin: 0 0 10px;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #f3d09c;
-    letter-spacing: 0.4px;
+
+/* =========================================================
+   CAPTURED PIECES PANELS
+   ========================================================= */
+
+.captured-panel {
+    width:
+        calc(
+            var(--board-size) + 34px
+        );
+
+    max-width: 100%;
+
+    height: 34px;
+
+    overflow: hidden;
 }
 
+.captured-panel h2 {
+    margin:
+        0
+        0
+        2px;
+
+    font-size: 0.65rem;
+
+    line-height: 1;
+
+    font-weight: 700;
+
+    color: #f3d09c;
+
+    letter-spacing: 0.25px;
+}
+
+
+/* =========================================================
+   CAPTURED PIECES ROW
+
+   No wrapping = panel never becomes taller.
+   ========================================================= */
+
 .captured-pieces {
-    min-height: 52px;
+    height: 19px;
+
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+
     align-items: center;
+
+    flex-wrap: nowrap;
+
+    gap: 1px;
+
+    overflow-x: auto;
+
+    overflow-y: hidden;
 }
 
 .captured-pieces .captured-piece {
-    width: 36px;
-    height: 36px;
+    width: 19px;
+    height: 19px;
+
+    flex:
+        0
+        0
+        auto;
+
     object-fit: contain;
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.32));
+
+    filter:
+        drop-shadow(
+            0 1px 2px
+            rgba(0, 0, 0, 0.35)
+        );
 }
+
+
+/* =========================================================
+   CHESSBOARD FRAME
+   ========================================================= */
 
 .board-frame {
     position: relative;
-    padding: 26px 18px 30px 30px;
+
+    flex: 0 0 auto;
+
+    padding:
+        15px
+        10px
+        18px
+        20px;
+
     background:
-        linear-gradient(145deg, #672b18 0%, #4a1f11 45%, #2d140d 100%);
-    border: 2px solid #8c532b;
-    border-radius: 18px;
+        linear-gradient(
+            145deg,
+            #672b18 0%,
+            #4a1f11 45%,
+            #2d140d 100%
+        );
+
+    border:
+        2px solid
+        #8c532b;
+
+    border-radius: 11px;
+
     box-shadow:
-        0 16px 35px rgba(0, 0, 0, 0.42),
-        inset 0 0 0 1px rgba(255, 208, 145, 0.08);
+        0 10px 24px
+        rgba(0, 0, 0, 0.42),
+        inset
+        0 0 0 1px
+        rgba(255, 208, 145, 0.08);
 }
 
+
+/* =========================================================
+   CHESSBOARD
+   ========================================================= */
+
 .chessboard {
+    position: relative;
+
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    width: min(84vw, 760px);
-    aspect-ratio: 1 / 1;
-    border: 2px solid #6f4425;
+
+    grid-template-columns:
+        repeat(8, 1fr);
+
+    grid-template-rows:
+        repeat(8, 1fr);
+
+    width: var(--board-size);
+    height: var(--board-size);
+
+    flex: 0 0 auto;
+
+    border:
+        2px solid
+        #6f4425;
+
     background: #ecd7b4;
+
     overflow: visible;
 }
 
+
+/* =========================================================
+   CHESS SQUARE
+   ========================================================= */
+
 .square {
     position: relative;
+
+    min-width: 0;
+    min-height: 0;
+
     display: flex;
+
     justify-content: center;
+
     align-items: center;
-    aspect-ratio: 1 / 1;
+
     cursor: pointer;
+
     user-select: none;
 }
 
+
+/* =========================================================
+   ORIGINAL LIGHT SQUARE COLOR
+   ========================================================= */
+
 .light {
     background:
-        linear-gradient(145deg, #f0dfc0, #e4cfab);
+        linear-gradient(
+            145deg,
+            #f0dfc0,
+            #e4cfab
+        );
 }
+
+
+/* =========================================================
+   ORIGINAL DARK SQUARE COLOR
+   ========================================================= */
 
 .dark {
     background:
-        linear-gradient(145deg, #cc7d43, #b86430);
+        linear-gradient(
+            145deg,
+            #cc7d43,
+            #b86430
+        );
 }
+
+
+/* =========================================================
+   CHESS PIECES
+   ========================================================= */
 
 .piece-image {
-    width: 84%;
-    height: 84%;
-    object-fit: contain;
-    pointer-events: none;
+    width: 76%;
+    height: 76%;
+
     display: block;
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
+
+    object-fit: contain;
+
+    pointer-events: none;
+
+    user-select: none;
+
+    filter:
+        drop-shadow(
+            0 2px 3px
+            rgba(0, 0, 0, 0.28)
+        );
+
+    transition:
+        transform
+        0.12s
+        ease;
 }
 
-/* Highlight the previous move */
-.square.last-move {
-    box-shadow:
-        inset 0 0 0 999px rgba(218, 165, 69, 0.18);
+.square:hover .piece-image {
+    transform:
+        scale(1.04);
 }
+
+
+/* =========================================================
+   IMPORTANT:
+   NO LAST-MOVE SQUARE COLOR CHANGE.
+
+   There is deliberately NO:
+   .square.last-move
+   rule here.
+   ========================================================= */
+
+
+/* =========================================================
+   SELECTED PIECE
+
+   Outline only.
+   Original square color stays unchanged.
+   ========================================================= */
 
 .square.selected {
-    outline: 4px solid rgba(255, 214, 109, 0.95);
-    outline-offset: -4px;
+    outline:
+        3px solid
+        rgba(255, 214, 109, 0.95);
+
+    outline-offset:
+        -3px;
+
     z-index: 2;
 }
 
-.square.legal-move::after {
-    content: "";
-    position: absolute;
-    width: 20%;
-    height: 20%;
-    border-radius: 50%;
-    background: rgba(61, 41, 21, 0.30);
+
+/* =========================================================
+   LEGAL MOVE DOT
+
+   Keeps original square colors.
+   ========================================================= */
+
+.light.legal-move {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(61, 41, 21, 0.32)
+            0%,
+            rgba(61, 41, 21, 0.32)
+            10%,
+            transparent
+            11%
+        ),
+        linear-gradient(
+            145deg,
+            #f0dfc0,
+            #e4cfab
+        );
 }
+
+.dark.legal-move {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(61, 41, 21, 0.32)
+            0%,
+            rgba(61, 41, 21, 0.32)
+            10%,
+            transparent
+            11%
+        ),
+        linear-gradient(
+            145deg,
+            #cc7d43,
+            #b86430
+        );
+}
+
+
+/* =========================================================
+   CAPTURE MOVE
+   ========================================================= */
 
 .square.capture-move {
-    box-shadow: inset 0 0 0 5px rgba(184, 58, 34, 0.62);
+    box-shadow:
+        inset
+        0 0 0 4px
+        rgba(184, 58, 34, 0.62);
 }
+
+
+/* =========================================================
+   RANK NUMBERS
+   ========================================================= */
 
 .square[data-rank]::before {
-    content: attr(data-rank);
+    content:
+        attr(data-rank);
+
     position: absolute;
-    left: -22px;
-    top: 7px;
-    color: #f4cf95;
-    font-size: 1rem;
+
+    left: -15px;
+
+    top: 4px;
+
+    font-size: 0.7rem;
+
     font-weight: 700;
+
     line-height: 1;
+
+    color: #f4cf95;
+
+    pointer-events: none;
 }
+
+
+/* =========================================================
+   FILE LETTERS
+   ========================================================= */
 
 .square[data-file]::after {
-    content: attr(data-file);
+    content:
+        attr(data-file);
+
     position: absolute;
-    bottom: -23px;
-    left: 8px;
-    color: #f4cf95;
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1;
+
+    bottom: -16px;
+
+    left: 5px;
+
     width: auto;
+
     height: auto;
+
+    font-size: 0.7rem;
+
+    font-weight: 700;
+
+    line-height: 1;
+
+    color: #f4cf95;
+
     background: transparent;
-    border-radius: 0;
+
+    pointer-events: none;
 }
+
+
+/* =========================================================
+   MOVE ARROW SVG
+   ========================================================= */
+
+.move-arrow {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    pointer-events: none;
+
+    z-index: 5;
+
+    overflow: visible;
+}
+
+
+/* =========================================================
+   MOVE ARROW LINE
+   ========================================================= */
+
+.move-arrow-line {
+    stroke:
+        rgba(
+            218,
+            165,
+            69,
+            0.72
+        );
+
+    stroke-width: 16;
+
+    stroke-linecap: round;
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   MOVE ARROW HEAD
+   ========================================================= */
+
+.move-arrow-head {
+    fill:
+        rgba(
+            218,
+            165,
+            69,
+            0.78
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   MOVE HISTORY PANEL
+   ========================================================= */
 
 .side-panel {
-    min-height: 100%;
+    width: 250px;
+
+    height:
+        min(
+            calc(100dvh - 65px),
+            610px
+        );
+
+    min-height: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+    padding:
+        8px;
 }
 
-.move-history {
-    max-height: 760px;
-    overflow-y: auto;
-    padding-right: 4px;
+.side-panel h2 {
+    flex: 0 0 auto;
+
+    margin:
+        0
+        0
+        6px;
+
+    font-size: 0.9rem;
+
+    color: #f3d09c;
+
+    letter-spacing: 0.3px;
 }
+
+
+/* =========================================================
+   MOVE HISTORY CONTENT
+
+   Only this section scrolls.
+   The page itself never scrolls.
+   ========================================================= */
+
+.move-history {
+    flex: 1;
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    padding-right: 3px;
+}
+
+
+/* =========================================================
+   MOVE HISTORY ROW
+   ========================================================= */
 
 .move-row {
     display: grid;
-    grid-template-columns: 52px 1fr 1fr;
-    gap: 10px;
+
+    grid-template-columns:
+        34px
+        1fr
+        1fr;
+
+    gap: 5px;
+
     align-items: center;
-    padding: 9px 10px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    background: rgba(255, 236, 205, 0.04);
-    border: 1px solid rgba(204, 137, 66, 0.12);
+
+    padding:
+        5px
+        6px;
+
+    margin-bottom: 4px;
+
+    border-radius: 7px;
+
+    background:
+        rgba(
+            255,
+            236,
+            205,
+            0.04
+        );
+
+    border:
+        1px solid
+        rgba(
+            204,
+            137,
+            66,
+            0.12
+        );
 }
+
+
+/* =========================================================
+   MOVE NUMBER
+   ========================================================= */
 
 .move-number {
-    color: #d9b580;
+    font-size: 0.78rem;
+
     font-weight: 700;
+
+    color: #d9b580;
 }
+
+
+/* =========================================================
+   MOVE CELL
+   ========================================================= */
 
 .move-cell {
-    color: #f4e0bf;
+    font-size: 0.8rem;
+
     font-weight: 600;
+
+    color: #f4e0bf;
 }
+
+
+/* =========================================================
+   EMPTY HISTORY MESSAGE
+   ========================================================= */
 
 .move-history-empty {
+    margin: 0;
+
+    font-size: 0.8rem;
+
     color: #d7b98b;
+
     opacity: 0.8;
-    font-size: 0.98rem;
 }
 
+
+/* =========================================================
+   MOVE HISTORY SCROLLBAR
+   ========================================================= */
+
 .move-history::-webkit-scrollbar {
-    width: 8px;
+    width: 5px;
+}
+
+.move-history::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .move-history::-webkit-scrollbar-thumb {
-    background: rgba(202, 138, 69, 0.45);
+    background:
+        rgba(
+            202,
+            138,
+            69,
+            0.45
+        );
+
     border-radius: 20px;
 }
 
-@media (max-width: 1100px) {
-    .game-layout {
-        grid-template-columns: 1fr;
-    }
 
-    .side-panel {
-        width: 100%;
-    }
+/* =========================================================
+   CAPTURED PIECES SCROLLBAR
+   ========================================================= */
 
-    .move-history {
-        max-height: 340px;
-    }
+.captured-pieces::-webkit-scrollbar {
+    height: 3px;
 }
 
-@media (max-width: 640px) {
-    .chess-page {
-        padding: 18px 10px 30px;
+.captured-pieces::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.captured-pieces::-webkit-scrollbar-thumb {
+    background:
+        rgba(
+            202,
+            138,
+            69,
+            0.45
+        );
+
+    border-radius: 20px;
+}
+
+
+/* =========================================================
+   SHORT LAPTOP SCREENS
+   ========================================================= */
+
+@media (
+    max-height: 760px
+)
+and (
+    min-width: 901px
+) {
+
+    :root {
+        --board-size:
+            min(
+                50vw,
+                calc(100dvh - 165px),
+                480px
+            );
     }
 
     .page-header h1 {
-        font-size: 2.25rem;
+        font-size: 1.45rem;
     }
 
-    .board-frame {
-        padding: 18px 12px 24px 24px;
+    .page-header p {
+        display: none;
     }
 
-    .chessboard {
-        width: 96vw;
+    .page-header {
+        margin-bottom: 3px;
     }
 
-    .square[data-rank]::before {
-        left: -18px;
-        font-size: 0.9rem;
-    }
-
-    .square[data-file]::after {
-        bottom: -19px;
-        font-size: 0.9rem;
-    }
-
-    .captured-pieces .captured-piece {
-        width: 30px;
+    .captured-panel {
         height: 30px;
     }
 
+    .captured-panel h2 {
+        font-size: 0.6rem;
+    }
+
+    .captured-pieces {
+        height: 16px;
+    }
+
+    .captured-pieces .captured-piece {
+        width: 16px;
+        height: 16px;
+    }
+
+    .board-frame {
+        padding:
+            13px
+            9px
+            16px
+            18px;
+    }
+
+    .status-bar p {
+        font-size: 0.75rem;
+    }
+
+    .side-panel {
+        height:
+            calc(
+                100dvh - 45px
+            );
+    }
+}
+
+
+/* =========================================================
+   TABLET / PORTRAIT MOBILE
+
+   Still NO page scrolling.
+
+   Board on top.
+   Small move-history panel underneath.
+   ========================================================= */
+
+@media (
+    max-width: 900px
+) {
+
+    :root {
+        --board-size:
+            min(
+                86vw,
+                calc(100dvh - 265px),
+                500px
+            );
+    }
+
+    .chess-page {
+        padding:
+            5px
+            5px;
+    }
+
+    .page-header {
+        margin-bottom: 3px;
+    }
+
+    .page-header h1 {
+        font-size: 1.45rem;
+    }
+
+    .page-header p {
+        display: none;
+    }
+
+    .game-layout {
+        display: flex;
+
+        flex-direction: column;
+
+        align-items: center;
+
+        justify-content: center;
+
+        gap: 5px;
+
+        overflow: hidden;
+    }
+
+    .board-column {
+        flex: 0 0 auto;
+
+        width: 100%;
+
+        gap: 3px;
+    }
+
+    .status-bar,
+    .captured-panel {
+        width:
+            calc(
+                var(--board-size) + 30px
+            );
+
+        max-width: 96vw;
+    }
+
+    .captured-panel {
+        height: 29px;
+    }
+
+    .captured-panel h2 {
+        font-size: 0.58rem;
+    }
+
+    .captured-pieces {
+        height: 15px;
+    }
+
+    .captured-pieces .captured-piece {
+        width: 15px;
+        height: 15px;
+    }
+
+    .board-frame {
+        padding:
+            13px
+            8px
+            16px
+            18px;
+    }
+
+    .side-panel {
+        flex: 1;
+
+        width:
+            calc(
+                var(--board-size) + 30px
+            );
+
+        max-width: 96vw;
+
+        height: auto;
+
+        min-height: 70px;
+
+        max-height: 120px;
+
+        padding:
+            5px
+            7px;
+    }
+
+    .side-panel h2 {
+        font-size: 0.76rem;
+
+        margin-bottom: 3px;
+    }
+
     .move-row {
-        grid-template-columns: 42px 1fr 1fr;
-        gap: 8px;
+        grid-template-columns:
+            30px
+            1fr
+            1fr;
+
+        padding:
+            3px
+            5px;
+
+        margin-bottom: 2px;
+    }
+
+    .move-number,
+    .move-cell {
+        font-size: 0.72rem;
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (
+    max-width: 600px
+) {
+
+    :root {
+        --board-size:
+            min(
+                88vw,
+                calc(100dvh - 245px),
+                440px
+            );
+    }
+
+    .chess-page {
+        padding:
+            4px
+            3px;
+    }
+
+    .page-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .status-bar {
+        height: 25px;
+
+        padding:
+            4px
+            6px;
+    }
+
+    .status-bar p {
+        font-size: 0.72rem;
+    }
+
+    .captured-panel {
+        height: 27px;
+
+        padding:
+            3px
+            6px;
+    }
+
+    .captured-panel h2 {
+        font-size: 0.55rem;
+    }
+
+    .captured-pieces {
+        height: 14px;
+    }
+
+    .captured-pieces .captured-piece {
+        width: 14px;
+        height: 14px;
+    }
+
+    .board-frame {
+        padding:
+            12px
+            7px
+            15px
+            17px;
+
+        border-radius: 8px;
+    }
+
+    .piece-image {
+        width: 78%;
+        height: 78%;
+    }
+
+    .square[data-rank]::before {
+        left: -13px;
+
+        top: 3px;
+
+        font-size: 0.62rem;
+    }
+
+    .square[data-file]::after {
+        bottom: -14px;
+
+        left: 4px;
+
+        font-size: 0.62rem;
+    }
+
+    .side-panel {
+        min-height: 62px;
+
+        max-height: 100px;
+    }
+
+    .side-panel h2 {
+        font-size: 0.7rem;
+    }
+
+    .move-row {
+        grid-template-columns:
+            28px
+            1fr
+            1fr;
+
+        gap: 3px;
+
+        padding:
+            3px
+            4px;
+    }
+
+    .move-number,
+    .move-cell {
+        font-size: 0.68rem;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (
+    max-width: 390px
+) {
+
+    :root {
+        --board-size:
+            min(
+                86vw,
+                calc(100dvh - 230px),
+                330px
+            );
+    }
+
+    .page-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .board-frame {
+        padding:
+            11px
+            6px
+            14px
+            16px;
+    }
+
+    .piece-image {
+        width: 80%;
+        height: 80%;
+    }
+
+    .side-panel {
+        max-height: 90px;
+    }
+}
+
+
+/* =========================================================
+   PHONE / TABLET LANDSCAPE
+
+   Everything goes side-by-side so the page still does not
+   scroll vertically.
+   ========================================================= */
+
+@media (
+    max-height: 500px
+)
+and (
+    min-width: 600px
+) {
+
+    :root {
+        --board-size:
+            min(
+                calc(100dvh - 125px),
+                48vw,
+                340px
+            );
+    }
+
+    .chess-page {
+        padding:
+            3px
+            6px;
+    }
+
+    .page-header {
+        margin-bottom: 2px;
+    }
+
+    .page-header h1 {
+        font-size: 1.15rem;
+    }
+
+    .page-header p {
+        display: none;
+    }
+
+    .game-layout {
+        display: grid;
+
+        grid-template-columns:
+            auto
+            180px;
+
+        gap: 7px;
+
+        align-items: center;
+    }
+
+    .board-column {
+        gap: 2px;
+    }
+
+    .status-bar,
+    .captured-panel {
+        width:
+            calc(
+                var(--board-size) + 28px
+            );
+    }
+
+    .status-bar {
+        padding:
+            3px
+            6px;
+    }
+
+    .status-bar p {
+        font-size: 0.65rem;
+    }
+
+    .captured-panel {
+        height: 24px;
+
+        padding:
+            2px
+            5px;
+    }
+
+    .captured-panel h2 {
+        font-size: 0.5rem;
+    }
+
+    .captured-pieces {
+        height: 12px;
+    }
+
+    .captured-pieces .captured-piece {
+        width: 12px;
+        height: 12px;
+    }
+
+    .board-frame {
+        padding:
+            10px
+            6px
+            13px
+            15px;
+    }
+
+    .side-panel {
+        width: 180px;
+
+        height:
+            calc(
+                100dvh - 35px
+            );
+
+        min-height: 0;
+
+        max-height: none;
+    }
+
+    .side-panel h2 {
+        font-size: 0.68rem;
+    }
+
+    .move-row {
+        grid-template-columns:
+            25px
+            1fr
+            1fr;
+
+        gap: 2px;
+
+        padding:
+            2px
+            3px;
+    }
+
+    .move-number,
+    .move-cell {
+        font-size: 0.62rem;
     }
 }
