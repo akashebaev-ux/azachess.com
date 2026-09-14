@@ -1,19 +1,36 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
     <title>AzaChess</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'game/css/style.css' %}"
+    >
 </head>
 
 <body>
 
-    <h1>AzaChess</h1>
+    <main>
 
-    <p>Play chess online.</p>
+        <h1>AzaChess</h1>
+
+        <p>Play chess online.</p>
+
+    </main>
+
+    <script src="{% static 'game/js/chess.js' %}"></script>
 
 </body>
+
 </html>
