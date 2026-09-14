@@ -1364,3 +1364,125 @@ and (
         font-size: 0.62rem;
     }
 }
+
+
+/* =========================================================
+   GAME ACTION BUTTONS
+   ========================================================= */
+
+.game-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+    padding-top: 8px;
+
+    border-top:
+        1px solid
+        rgba(196, 131, 66, 0.30);
+}
+
+.secondary-actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr;
+
+    gap: 6px;
+}
+
+.game-button {
+    width: 100%;
+
+    padding:
+        7px
+        10px;
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.65);
+
+    border-radius: 7px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(88, 52, 29, 0.95),
+            rgba(54, 31, 19, 0.97)
+        );
+
+    color: #f3d09c;
+
+    font-size: 0.78rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.game-button:hover {
+    transform: translateY(-1px);
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(106, 62, 33, 0.98),
+            rgba(64, 36, 20, 0.98)
+        );
+
+    box-shadow:
+        0 4px 10px
+        rgba(0, 0, 0, 0.25);
+}
+
+.game-button:active {
+    transform: translateY(0);
+}
+
+.danger-button {
+    border-color:
+        rgba(184, 58, 34, 0.60);
+}
+
+.new-game-button {
+    color: #ffd497;
+
+    border-color:
+        rgba(218, 165, 69, 0.75);
+}
+
+
+/* Smaller buttons on mobile */
+
+@media (max-width: 600px) {
+
+    .game-actions {
+        gap: 4px;
+
+        margin-top: 4px;
+
+        padding-top: 4px;
+    }
+
+    .secondary-actions {
+        gap: 4px;
+    }
+
+    .game-button {
+        padding:
+            4px
+            6px;
+
+        font-size: 0.66rem;
+    }
+}

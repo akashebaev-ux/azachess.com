@@ -17,6 +17,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const moveHistoryContainer =
         document.getElementById("move-history");
 
+    const drawButton =
+        document.getElementById("draw-button");
+
+    const resignButton =
+        document.getElementById("resign-button");
+
+    const newGameButton =
+        document.getElementById("new-game-button");
+
 
     /*
     ============================================================
@@ -3046,6 +3055,213 @@ document.addEventListener("DOMContentLoaded", function () {
                 currentTurn
             );
     }
+
+
+    /*
+============================================================
+DRAW
+============================================================
+*/
+
+function offerDraw() {
+    if (gameOver) {
+        return;
+    }
+
+    const offeringPlayer =
+        currentTurn;
+
+    const opponent =
+        oppositeColor(
+            offeringPlayer
+        );
+
+    const accepted =
+        window.confirm(
+            `${capitalize(offeringPlayer)} offers a draw.\n\n` +
+            `Does ${capitalize(opponent)} accept?`
+        );
+
+    if (!accepted) {
+        return;
+    }
+
+    gameOver = true;
+
+    selectedSquare = null;
+
+    turnDisplay.textContent =
+        "Draw by agreement";
+
+    createBoard();
+}
+
+
+/*
+============================================================
+RESIGN
+============================================================
+*/
+
+function resignGame() {
+    if (gameOver) {
+        return;
+    }
+
+    const resigningPlayer =
+        currentTurn;
+
+    const winner =
+        oppositeColor(
+            resigningPlayer
+        );
+
+    const confirmed =
+        window.confirm(
+            `${capitalize(resigningPlayer)}, ` +
+            `are you sure you want to resign?`
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    gameOver = true;
+
+    selectedSquare = null;
+
+    turnDisplay.textContent =
+        `${capitalize(winner)} wins — ` +
+        `${capitalize(resigningPlayer)} resigned`;
+
+    createBoard();
+}
+
+
+/*
+============================================================
+NEW GAME
+============================================================
+*/
+
+function startNewGame() {
+    /*
+    Ask before deleting an active game.
+    */
+
+    if (
+        !gameOver &&
+        moveHistory.length > 0
+    ) {
+        const confirmed =
+            window.confirm(
+                "Start a new game? " +
+                "The current game will be lost."
+            );
+
+        if (!confirmed) {
+            return;
+        }
+    }
+
+
+    /*
+    Reset board.
+    */
+
+    board =
+        createInitialBoard();
+
+
+    /*
+    Reset game state.
+    */
+
+    currentTurn =
+        "white";
+
+    selectedSquare =
+        null;
+
+    enPassantTarget =
+        null;
+
+    halfMoveClock =
+        0;
+
+    gameOver =
+        false;
+
+    lastMove =
+        null;
+
+
+    /*
+    Reset captured pieces.
+    */
+
+    capturedWhitePieces =
+        [];
+
+    capturedBlackPieces =
+        [];
+
+
+    /*
+    Reset move history.
+    */
+
+    moveHistory =
+        [];
+
+    fullMoveNumber =
+        1;
+
+
+    /*
+    Reset repetition history.
+    */
+
+    positionHistory.clear();
+
+    recordPosition();
+
+
+    /*
+    Refresh interface.
+    */
+
+    updateTurnDisplay();
+
+    renderCapturedPieces();
+
+    renderMoveHistory();
+
+    createBoard();
+}
+
+
+/*
+============================================================
+GAME BUTTON EVENTS
+============================================================
+*/
+
+drawButton.addEventListener(
+    "click",
+    offerDraw
+);
+
+resignButton.addEventListener(
+    "click",
+    resignGame
+);
+
+newGameButton.addEventListener(
+    "click",
+    startNewGame
+);
+
 
 
     /*
