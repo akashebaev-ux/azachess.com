@@ -26,6 +26,34 @@ document.addEventListener("DOMContentLoaded", function () {
     const newGameButton =
         document.getElementById("new-game-button");
 
+    const gameModal =
+        document.getElementById("game-modal");
+
+    const gameModalBackdrop =
+        document.getElementById(
+            "game-modal-backdrop"
+        );
+
+    const gameModalTitle =
+        document.getElementById(
+            "game-modal-title"
+        );
+
+    const gameModalMessage =
+        document.getElementById(
+            "game-modal-message"
+        );
+
+    const gameModalCancel =
+        document.getElementById(
+            "game-modal-cancel"
+        );
+
+    const gameModalConfirm =
+        document.getElementById(
+            "game-modal-confirm"
+        );
+
 
     /*
     ============================================================
@@ -3057,13 +3085,142 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    /*
+/*
+============================================================
+CUSTOM GAME MODAL
+============================================================
+*/
+
+let gameModalResolver = null;
+
+
+function showGameModal({
+    title,
+    message,
+    confirmText = "Confirm",
+    danger = false
+}) {
+    return new Promise(resolve => {
+
+        gameModalResolver =
+            resolve;
+
+        gameModalTitle.textContent =
+            title;
+
+        gameModalMessage.textContent =
+            message;
+
+        gameModalConfirm.textContent =
+            confirmText;
+
+
+        /*
+        Resign can use the darker
+        danger button style.
+        */
+
+        gameModalConfirm.classList.toggle(
+            "danger",
+            danger
+        );
+
+
+        /*
+        Open modal.
+        */
+
+        gameModal.classList.add(
+            "is-open"
+        );
+
+        gameModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        /*
+        Put keyboard focus on
+        the confirmation button.
+        */
+
+        gameModalConfirm.focus();
+    });
+}
+
+
+function closeGameModal(result) {
+    gameModal.classList.remove(
+        "is-open"
+    );
+
+    gameModal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    if (gameModalResolver) {
+        gameModalResolver(
+            result
+        );
+
+        gameModalResolver =
+            null;
+    }
+}
+
+
+gameModalCancel.addEventListener(
+    "click",
+    function () {
+        closeGameModal(false);
+    }
+);
+
+
+gameModalConfirm.addEventListener(
+    "click",
+    function () {
+        closeGameModal(true);
+    }
+);
+
+
+gameModalBackdrop.addEventListener(
+    "click",
+    function () {
+        closeGameModal(false);
+    }
+);
+
+
+/*
+Escape closes modal.
+*/
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+        if (
+            event.key === "Escape" &&
+            gameModal.classList.contains(
+                "is-open"
+            )
+        ) {
+            closeGameModal(false);
+        }
+    }
+);
+
+
+/*
 ============================================================
 DRAW
 ============================================================
 */
 
-function offerDraw() {
+async function offerDraw() {
     if (gameOver) {
         return;
     }
@@ -3077,18 +3234,28 @@ function offerDraw() {
         );
 
     const accepted =
-        window.confirm(
-            `${capitalize(offeringPlayer)} offers a draw.\n\n` +
-            `Does ${capitalize(opponent)} accept?`
-        );
+        await showGameModal({
+            title:
+                "Draw Offer",
+
+            message:
+                `${capitalize(offeringPlayer)} ` +
+                `offers a draw. ` +
+                `Does ${capitalize(opponent)} accept?`,
+
+            confirmText:
+                "Accept Draw"
+        });
 
     if (!accepted) {
         return;
     }
 
-    gameOver = true;
+    gameOver =
+        true;
 
-    selectedSquare = null;
+    selectedSquare =
+        null;
 
     turnDisplay.textContent =
         "Draw by agreement";
@@ -3103,7 +3270,7 @@ RESIGN
 ============================================================
 */
 
-function resignGame() {
+async function resignGame() {
     if (gameOver) {
         return;
     }
@@ -3117,18 +3284,30 @@ function resignGame() {
         );
 
     const confirmed =
-        window.confirm(
-            `${capitalize(resigningPlayer)}, ` +
-            `are you sure you want to resign?`
-        );
+        await showGameModal({
+            title:
+                "Resign Game",
+
+            message:
+                `${capitalize(resigningPlayer)}, ` +
+                `are you sure you want to resign?`,
+
+            confirmText:
+                "Resign",
+
+            danger:
+                true
+        });
 
     if (!confirmed) {
         return;
     }
 
-    gameOver = true;
+    gameOver =
+        true;
 
-    selectedSquare = null;
+    selectedSquare =
+        null;
 
     turnDisplay.textContent =
         `${capitalize(winner)} wins — ` +
@@ -3138,13 +3317,14 @@ function resignGame() {
 }
 
 
+
 /*
 ============================================================
 NEW GAME
 ============================================================
 */
 
-function startNewGame() {
+async function startNewGame() {
     /*
     Ask before deleting an active game.
     */
@@ -3154,10 +3334,17 @@ function startNewGame() {
         moveHistory.length > 0
     ) {
         const confirmed =
-            window.confirm(
-                "Start a new game? " +
-                "The current game will be lost."
-            );
+            await showGameModal({
+                title:
+                    "New Game",
+
+                message:
+                    "Start a new game? " +
+                    "The current game will be lost.",
+
+                confirmText:
+                    "Start New Game"
+            });
 
         if (!confirmed) {
             return;
