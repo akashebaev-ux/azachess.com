@@ -1891,6 +1891,14 @@ document.addEventListener("DOMContentLoaded", function () {
         renderCapturedPieces();
 
         renderMoveHistory();
+
+
+        /*
+        Ask Stockfish to analyse
+        the position after this move.
+        */
+
+        analyseWithStockfish();
     }
 
 
@@ -2224,6 +2232,200 @@ document.addEventListener("DOMContentLoaded", function () {
 
         chessboard.appendChild(svg);
     }
+
+/*
+============================================================
+STOCKFISH RECOMMENDATION ARROW
+============================================================
+*/
+
+function drawEngineArrow(bestMove) {
+    /*
+    Remove previous engine arrow.
+    */
+    const oldArrow =
+        chessboard.querySelector(".engine-arrow");
+
+    if (oldArrow) {
+        oldArrow.remove();
+    }
+
+    if (!bestMove || bestMove.length < 4) {
+        return;
+    }
+
+    /*
+    Stockfish gives moves such as:
+    e2e4
+    g8f6
+    */
+    const fromFile = bestMove[0];
+    const fromRank = parseInt(bestMove[1], 10);
+
+    const toFile = bestMove[2];
+    const toRank = parseInt(bestMove[3], 10);
+
+    const fromColumn =
+        boardFiles.indexOf(
+            fromFile.toUpperCase()
+        );
+
+    const toColumn =
+        boardFiles.indexOf(
+            toFile.toUpperCase()
+        );
+
+    const fromRow = 8 - fromRank;
+    const toRow = 8 - toRank;
+
+    if (
+        fromColumn === -1 ||
+        toColumn === -1
+    ) {
+        return;
+    }
+
+    const svgNamespace =
+        "http://www.w3.org/2000/svg";
+
+    const svg =
+        document.createElementNS(
+            svgNamespace,
+            "svg"
+        );
+
+    svg.classList.add(
+        "move-arrow",
+        "engine-arrow"
+    );
+
+    svg.setAttribute(
+        "viewBox",
+        "0 0 800 800"
+    );
+
+    svg.setAttribute(
+        "preserveAspectRatio",
+        "none"
+    );
+
+    const startX =
+        fromColumn * 100 + 50;
+
+    const startY =
+        fromRow * 100 + 50;
+
+    const targetX =
+        toColumn * 100 + 50;
+
+    const targetY =
+        toRow * 100 + 50;
+
+    const deltaX =
+        targetX - startX;
+
+    const deltaY =
+        targetY - startY;
+
+    const distance =
+        Math.sqrt(
+            deltaX * deltaX +
+            deltaY * deltaY
+        );
+
+    if (distance === 0) {
+        return;
+    }
+
+    const unitX =
+        deltaX / distance;
+
+    const unitY =
+        deltaY / distance;
+
+    const endX =
+        targetX - unitX * 28;
+
+    const endY =
+        targetY - unitY * 28;
+
+
+    /*
+    Arrow line.
+    */
+
+    const line =
+        document.createElementNS(
+            svgNamespace,
+            "line"
+        );
+
+    line.setAttribute("x1", startX);
+    line.setAttribute("y1", startY);
+    line.setAttribute("x2", endX);
+    line.setAttribute("y2", endY);
+
+    line.classList.add(
+        "engine-arrow-line"
+    );
+
+
+    /*
+    Arrow head.
+    */
+
+    const arrowLength = 34;
+    const arrowWidth = 25;
+
+    const baseX =
+        targetX -
+        unitX * arrowLength;
+
+    const baseY =
+        targetY -
+        unitY * arrowLength;
+
+    const perpendicularX = -unitY;
+    const perpendicularY = unitX;
+
+    const leftX =
+        baseX +
+        perpendicularX * arrowWidth;
+
+    const leftY =
+        baseY +
+        perpendicularY * arrowWidth;
+
+    const rightX =
+        baseX -
+        perpendicularX * arrowWidth;
+
+    const rightY =
+        baseY -
+        perpendicularY * arrowWidth;
+
+    const arrowHead =
+        document.createElementNS(
+            svgNamespace,
+            "polygon"
+        );
+
+    arrowHead.setAttribute(
+        "points",
+        `${targetX},${targetY} ` +
+        `${leftX},${leftY} ` +
+        `${rightX},${rightY}`
+    );
+
+    arrowHead.classList.add(
+        "engine-arrow-head"
+    );
+
+    svg.appendChild(line);
+    svg.appendChild(arrowHead);
+
+    chessboard.appendChild(svg);
+}
 
 
     function createMoveNotation({
@@ -3449,6 +3651,247 @@ newGameButton.addEventListener(
     startNewGame
 );
 
+
+/*
+============================================================
+STOCKFISH ENGINE
+============================================================
+*/
+
+function boardToFEN() {
+    const pieceLetters = {
+        king: "k",
+        queen: "q",
+        rook: "r",
+        bishop: "b",
+        knight: "n",
+        pawn: "p"
+    };
+
+    const fenRows = [];
+
+    for (let row = 0; row < 8; row++) {
+        let fenRow = "";
+        let emptySquares = 0;
+
+        for (let column = 0; column < 8; column++) {
+            const piece = board[row][column];
+
+            if (!piece) {
+                emptySquares++;
+                continue;
+            }
+
+            if (emptySquares > 0) {
+                fenRow += emptySquares;
+                emptySquares = 0;
+            }
+
+            let letter = pieceLetters[piece.type];
+
+            if (piece.color === "white") {
+                letter = letter.toUpperCase();
+            }
+
+            fenRow += letter;
+        }
+
+        if (emptySquares > 0) {
+            fenRow += emptySquares;
+        }
+
+        fenRows.push(fenRow);
+    }
+
+    const activeColor =
+        currentTurn === "white"
+            ? "w"
+            : "b";
+
+    const castling = getFENCastlingRights();
+    const enPassant = getFENEnPassantSquare();
+
+    return (
+        fenRows.join("/") +
+        " " +
+        activeColor +
+        " " +
+        castling +
+        " " +
+        enPassant +
+        " " +
+        halfMoveClock +
+        " " +
+        fullMoveNumber
+    );
+}
+
+
+function getFENCastlingRights() {
+    let rights = "";
+
+    const whiteKing = board[7][4];
+    const blackKing = board[0][4];
+
+    if (
+        whiteKing &&
+        whiteKing.type === "king" &&
+        whiteKing.color === "white" &&
+        !whiteKing.hasMoved
+    ) {
+        const rookH1 = board[7][7];
+        const rookA1 = board[7][0];
+
+        if (
+            rookH1 &&
+            rookH1.type === "rook" &&
+            rookH1.color === "white" &&
+            !rookH1.hasMoved
+        ) {
+            rights += "K";
+        }
+
+        if (
+            rookA1 &&
+            rookA1.type === "rook" &&
+            rookA1.color === "white" &&
+            !rookA1.hasMoved
+        ) {
+            rights += "Q";
+        }
+    }
+
+    if (
+        blackKing &&
+        blackKing.type === "king" &&
+        blackKing.color === "black" &&
+        !blackKing.hasMoved
+    ) {
+        const rookH8 = board[0][7];
+        const rookA8 = board[0][0];
+
+        if (
+            rookH8 &&
+            rookH8.type === "rook" &&
+            rookH8.color === "black" &&
+            !rookH8.hasMoved
+        ) {
+            rights += "k";
+        }
+
+        if (
+            rookA8 &&
+            rookA8.type === "rook" &&
+            rookA8.color === "black" &&
+            !rookA8.hasMoved
+        ) {
+            rights += "q";
+        }
+    }
+
+    return rights || "-";
+}
+
+
+function getFENEnPassantSquare() {
+    if (!enPassantTarget) {
+        return "-";
+    }
+
+    return getSquareName(
+        enPassantTarget.row,
+        enPassantTarget.column
+    );
+}
+
+
+function getCSRFToken() {
+    const cookie = document.cookie
+        .split("; ")
+        .find(row =>
+            row.startsWith("csrftoken=")
+        );
+
+    if (!cookie) {
+        return "";
+    }
+
+    return decodeURIComponent(
+        cookie.split("=")[1]
+    );
+}
+
+
+async function analyseWithStockfish() {
+    if (gameOver) {
+        return;
+    }
+
+    const fen = boardToFEN();
+
+    console.log(
+        "Sending position to Stockfish:",
+        fen
+    );
+
+    try {
+        const response = await fetch(
+            "/analyse/",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    "X-CSRFToken":
+                        getCSRFToken()
+                },
+
+                body: JSON.stringify({
+                    fen: fen
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            console.error(
+                "Stockfish error:",
+                data
+            );
+
+            return;
+        }
+
+        console.log(
+            "Stockfish result:",
+            data
+        );
+
+        console.log(
+            "Best move:",
+            data.best_move
+        );
+
+        console.log(
+            "Evaluation:",
+            data.evaluation
+        );
+
+        drawEngineArrow(
+            data.best_move
+        );
+
+    } catch (error) {
+        console.error(
+            "Could not connect to Stockfish:",
+            error
+        );
+    }
+}
 
 
     /*
