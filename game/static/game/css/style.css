@@ -1,5 +1,5 @@
 /* =========================================================
-   GLOBAL RESET
+   1. GLOBAL RESET
    ========================================================= */
 
 * {
@@ -38,15 +38,13 @@ body {
 
 
 /* =========================================================
-   RESPONSIVE BOARD SIZE
-
-   Board reacts to BOTH screen width and screen height.
+   2. RESPONSIVE BOARD SIZE
    ========================================================= */
 
 :root {
     --board-size:
         min(
-            52vw,
+            48vw,
             calc(100dvh - 190px),
             520px
         );
@@ -54,7 +52,7 @@ body {
 
 
 /* =========================================================
-   MAIN PAGE
+   3. MAIN PAGE
    ========================================================= */
 
 .chess-page {
@@ -62,7 +60,7 @@ body {
     height: 100vh;
     height: 100dvh;
 
-    max-width: 1200px;
+    max-width: 1400px;
 
     margin: 0 auto;
 
@@ -79,7 +77,7 @@ body {
 
 
 /* =========================================================
-   PAGE HEADER
+   4. PAGE HEADER
    ========================================================= */
 
 .page-header {
@@ -121,7 +119,11 @@ body {
 
 
 /* =========================================================
-   MAIN GAME AREA
+   5. MAIN THREE-COLUMN GAME LAYOUT
+
+   LEFT   = Engine Analysis
+   CENTER = Chessboard
+   RIGHT  = Move History
    ========================================================= */
 
 .game-layout {
@@ -132,6 +134,7 @@ body {
     display: grid;
 
     grid-template-columns:
+        220px
         auto
         250px;
 
@@ -146,29 +149,7 @@ body {
 
 
 /* =========================================================
-   LEFT BOARD COLUMN
-   ========================================================= */
-
-.board-column {
-    min-width: 0;
-    min-height: 0;
-
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: center;
-
-    justify-content: center;
-
-    gap: 4px;
-
-    overflow: hidden;
-}
-
-
-/* =========================================================
-   COMMON PANEL DESIGN
+   6. COMMON PANEL DESIGN
    ========================================================= */
 
 .card-panel {
@@ -199,7 +180,148 @@ body {
 
 
 /* =========================================================
-   TURN PANEL
+   7. LEFT PANEL - ENGINE ANALYSIS
+   ========================================================= */
+
+.engine-panel {
+    width: 220px;
+
+    align-self: center;
+
+    padding: 12px;
+
+    overflow: hidden;
+}
+
+.engine-panel h2 {
+    margin:
+        0
+        0
+        14px;
+
+    font-size: 1rem;
+
+    color: #f3d09c;
+
+    letter-spacing: 0.3px;
+}
+
+
+/* =========================================================
+   8. ENGINE ANALYSIS GRID
+   ========================================================= */
+
+.engine-analysis-grid {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+
+/* =========================================================
+   9. ENGINE ANALYSIS ITEM
+   ========================================================= */
+
+.engine-analysis-item {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    padding:
+        8px
+        9px;
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.20);
+
+    border-radius: 7px;
+
+    background:
+        rgba(
+            255,
+            236,
+            205,
+            0.04
+        );
+}
+
+.engine-label {
+    font-size: 0.7rem;
+
+    color: #d7b98b;
+
+    opacity: 0.85;
+}
+
+.engine-value {
+    font-size: 0.9rem;
+
+    font-weight: 700;
+
+    color: #f4e0bf;
+
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   10. ENGINE MOVE QUALITY
+   ========================================================= */
+
+.quality-best {
+    color: #69a545;
+}
+
+.quality-excellent {
+    color: #82b95d;
+}
+
+.quality-good {
+    color: #a6c76b;
+}
+
+.quality-inaccuracy {
+    color: #e5c15f;
+}
+
+.quality-mistake {
+    color: #df944c;
+}
+
+.quality-blunder {
+    color: #d75b42;
+}
+
+
+/* =========================================================
+   11. CENTER BOARD COLUMN
+   ========================================================= */
+
+.board-column {
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   12. TURN PANEL
    ========================================================= */
 
 .status-bar {
@@ -227,7 +349,7 @@ body {
 
 
 /* =========================================================
-   CAPTURED PIECES PANELS
+   13. CAPTURED PIECES PANELS
    ========================================================= */
 
 .captured-panel {
@@ -262,9 +384,7 @@ body {
 
 
 /* =========================================================
-   CAPTURED PIECES ROW
-
-   No wrapping = panel never becomes taller.
+   14. CAPTURED PIECES ROW
    ========================================================= */
 
 .captured-pieces {
@@ -303,7 +423,7 @@ body {
 
 
 /* =========================================================
-   CHESSBOARD FRAME
+   15. CHESSBOARD FRAME
    ========================================================= */
 
 .board-frame {
@@ -341,7 +461,7 @@ body {
 
 
 /* =========================================================
-   CHESSBOARD
+   16. CHESSBOARD
    ========================================================= */
 
 .chessboard {
@@ -371,7 +491,7 @@ body {
 
 
 /* =========================================================
-   CHESS SQUARE
+   17. CHESS SQUARE
    ========================================================= */
 
 .square {
@@ -393,7 +513,7 @@ body {
 
 
 /* =========================================================
-   ORIGINAL LIGHT SQUARE COLOR
+   18. ORIGINAL LIGHT SQUARE COLOR
    ========================================================= */
 
 .light {
@@ -407,7 +527,7 @@ body {
 
 
 /* =========================================================
-   ORIGINAL DARK SQUARE COLOR
+   19. ORIGINAL DARK SQUARE COLOR
    ========================================================= */
 
 .dark {
@@ -421,7 +541,7 @@ body {
 
 
 /* =========================================================
-   CHESS PIECES
+   20. CHESS PIECES
    ========================================================= */
 
 .piece-image {
@@ -455,20 +575,10 @@ body {
 
 
 /* =========================================================
-   IMPORTANT:
-   NO LAST-MOVE SQUARE COLOR CHANGE.
-
-   There is deliberately NO:
-   .square.last-move
-   rule here.
-   ========================================================= */
-
-
-/* =========================================================
-   SELECTED PIECE
+   21. SELECTED PIECE
 
    Outline only.
-   Original square color stays unchanged.
+   Original square color remains unchanged.
    ========================================================= */
 
 .square.selected {
@@ -484,9 +594,7 @@ body {
 
 
 /* =========================================================
-   LEGAL MOVE DOT
-
-   Keeps original square colors.
+   22. LEGAL MOVE DOT
    ========================================================= */
 
 .light.legal-move {
@@ -527,7 +635,7 @@ body {
 
 
 /* =========================================================
-   CAPTURE MOVE
+   23. CAPTURE MOVE
    ========================================================= */
 
 .square.capture-move {
@@ -539,7 +647,7 @@ body {
 
 
 /* =========================================================
-   RANK NUMBERS
+   24. RANK NUMBERS
    ========================================================= */
 
 .square[data-rank]::before {
@@ -565,7 +673,7 @@ body {
 
 
 /* =========================================================
-   FILE LETTERS
+   25. FILE LETTERS
    ========================================================= */
 
 .square[data-file]::after {
@@ -597,7 +705,7 @@ body {
 
 
 /* =========================================================
-   MOVE ARROW SVG
+   26. LAST MOVE ARROW
    ========================================================= */
 
 .move-arrow {
@@ -616,11 +724,6 @@ body {
     overflow: visible;
 }
 
-
-/* =========================================================
-   MOVE ARROW LINE
-   ========================================================= */
-
 .move-arrow-line {
     stroke:
         rgba(
@@ -637,11 +740,6 @@ body {
     pointer-events: none;
 }
 
-
-/* =========================================================
-   MOVE ARROW HEAD
-   ========================================================= */
-
 .move-arrow-head {
     fill:
         rgba(
@@ -656,7 +754,56 @@ body {
 
 
 /* =========================================================
-   MOVE HISTORY PANEL
+   27. STOCKFISH ENGINE ARROW
+   ========================================================= */
+
+.engine-arrow {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    pointer-events: none;
+
+    z-index: 8;
+
+    overflow: visible;
+}
+
+.engine-arrow-line {
+    stroke:
+        rgba(
+            20,
+            20,
+            20,
+            0.82
+        );
+
+    stroke-width: 18;
+
+    stroke-linecap: round;
+
+    pointer-events: none;
+}
+
+.engine-arrow-head {
+    fill:
+        rgba(
+            20,
+            20,
+            20,
+            0.82
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   28. RIGHT PANEL - MOVE HISTORY
    ========================================================= */
 
 .side-panel {
@@ -676,8 +823,7 @@ body {
 
     overflow: hidden;
 
-    padding:
-        8px;
+    padding: 8px;
 }
 
 .side-panel h2 {
@@ -697,10 +843,7 @@ body {
 
 
 /* =========================================================
-   MOVE HISTORY CONTENT
-
-   Only this section scrolls.
-   The page itself never scrolls.
+   29. MOVE HISTORY CONTENT
    ========================================================= */
 
 .move-history {
@@ -717,7 +860,7 @@ body {
 
 
 /* =========================================================
-   MOVE HISTORY ROW
+   30. MOVE HISTORY ROW
    ========================================================= */
 
 .move-row {
@@ -760,7 +903,7 @@ body {
 
 
 /* =========================================================
-   MOVE NUMBER
+   31. MOVE NUMBER
    ========================================================= */
 
 .move-number {
@@ -773,7 +916,7 @@ body {
 
 
 /* =========================================================
-   MOVE CELL
+   32. MOVE CELL
    ========================================================= */
 
 .move-cell {
@@ -786,7 +929,7 @@ body {
 
 
 /* =========================================================
-   EMPTY HISTORY MESSAGE
+   33. EMPTY HISTORY MESSAGE
    ========================================================= */
 
 .move-history-empty {
@@ -801,7 +944,7 @@ body {
 
 
 /* =========================================================
-   MOVE HISTORY SCROLLBAR
+   34. SCROLLBARS
    ========================================================= */
 
 .move-history::-webkit-scrollbar {
@@ -823,11 +966,6 @@ body {
 
     border-radius: 20px;
 }
-
-
-/* =========================================================
-   CAPTURED PIECES SCROLLBAR
-   ========================================================= */
 
 .captured-pieces::-webkit-scrollbar {
     height: 3px;
@@ -851,7 +989,392 @@ body {
 
 
 /* =========================================================
-   SHORT LAPTOP SCREENS
+   35. GAME ACTION BUTTONS
+   ========================================================= */
+
+.game-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+    padding-top: 8px;
+
+    border-top:
+        1px solid
+        rgba(196, 131, 66, 0.30);
+}
+
+.secondary-actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr;
+
+    gap: 6px;
+}
+
+.game-button {
+    width: 100%;
+
+    padding:
+        7px
+        10px;
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.65);
+
+    border-radius: 7px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(88, 52, 29, 0.95),
+            rgba(54, 31, 19, 0.97)
+        );
+
+    color: #f3d09c;
+
+    font-size: 0.78rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.game-button:hover {
+    transform:
+        translateY(-1px);
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(106, 62, 33, 0.98),
+            rgba(64, 36, 20, 0.98)
+        );
+
+    box-shadow:
+        0 4px 10px
+        rgba(0, 0, 0, 0.25);
+}
+
+.game-button:active {
+    transform:
+        translateY(0);
+}
+
+.danger-button {
+    border-color:
+        rgba(184, 58, 34, 0.60);
+}
+
+.new-game-button {
+    color: #ffd497;
+
+    border-color:
+        rgba(218, 165, 69, 0.75);
+}
+
+
+/* =========================================================
+   36. GAME MODAL
+   ========================================================= */
+
+.game-modal {
+    position: fixed;
+
+    inset: 0;
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    z-index: 9999;
+}
+
+.game-modal.is-open {
+    display: flex;
+}
+
+
+/* =========================================================
+   37. MODAL BACKDROP
+   ========================================================= */
+
+.game-modal-backdrop {
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        rgba(
+            18,
+            13,
+            10,
+            0.82
+        );
+
+    backdrop-filter:
+        blur(3px);
+}
+
+
+/* =========================================================
+   38. MODAL WINDOW
+   ========================================================= */
+
+.game-modal-dialog {
+    position: relative;
+
+    z-index: 1;
+
+    width:
+        min(
+            92vw,
+            420px
+        );
+
+    padding:
+        24px
+        24px
+        20px;
+
+    text-align: center;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(61, 37, 24, 0.99),
+            rgba(29, 19, 13, 0.99)
+        );
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.65);
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 22px 55px
+        rgba(0, 0, 0, 0.60),
+        inset
+        0 0 0 1px
+        rgba(255, 222, 173, 0.05);
+}
+
+
+/* =========================================================
+   39. MODAL CHESS ICON
+   ========================================================= */
+
+.game-modal-icon {
+    width: 52px;
+    height: 52px;
+
+    margin:
+        0
+        auto
+        12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.55);
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #672b18,
+            #4a1f11
+        );
+
+    color: #f5d29b;
+
+    font-size: 1.8rem;
+
+    box-shadow:
+        0 5px 15px
+        rgba(0, 0, 0, 0.30);
+}
+
+
+/* =========================================================
+   40. MODAL TITLE
+   ========================================================= */
+
+.game-modal-dialog h2 {
+    margin:
+        0
+        0
+        9px;
+
+    font-size: 1.3rem;
+
+    color: #f5d29b;
+
+    letter-spacing: 0.3px;
+}
+
+
+/* =========================================================
+   41. MODAL MESSAGE
+   ========================================================= */
+
+.game-modal-dialog p {
+    margin:
+        0
+        auto
+        20px;
+
+    max-width: 330px;
+
+    font-size: 0.92rem;
+
+    line-height: 1.5;
+
+    color: #f3d7ac;
+}
+
+
+/* =========================================================
+   42. MODAL ACTIONS
+   ========================================================= */
+
+.game-modal-actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr;
+
+    gap: 10px;
+}
+
+
+/* =========================================================
+   43. MODAL BUTTONS
+   ========================================================= */
+
+.modal-button {
+    min-height: 42px;
+
+    padding:
+        9px
+        14px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    font-size: 0.84rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.modal-cancel-button {
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.45);
+
+    background:
+        rgba(255, 236, 205, 0.04);
+
+    color: #e5c18d;
+}
+
+.modal-cancel-button:hover {
+    background:
+        rgba(255, 236, 205, 0.09);
+
+    transform:
+        translateY(-1px);
+}
+
+.modal-confirm-button {
+    border:
+        1px solid
+        rgba(196, 131, 66, 0.75);
+
+    background:
+        linear-gradient(
+            180deg,
+            #672b18,
+            #4a1f11
+        );
+
+    color: #ffd497;
+
+    box-shadow:
+        0 4px 12px
+        rgba(0, 0, 0, 0.25);
+}
+
+.modal-confirm-button:hover {
+    background:
+        linear-gradient(
+            180deg,
+            #74351d,
+            #552414
+        );
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 6px 15px
+        rgba(0, 0, 0, 0.32);
+}
+
+.modal-confirm-button.danger {
+    border-color:
+        rgba(184, 58, 34, 0.70);
+
+    background:
+        linear-gradient(
+            180deg,
+            #672b18,
+            #3d180f
+        );
+}
+
+.modal-button:active {
+    transform:
+        translateY(0);
+}
+
+
+/* =========================================================
+   44. SHORT LAPTOP SCREENS
    ========================================================= */
 
 @media (
@@ -864,7 +1387,7 @@ and (
     :root {
         --board-size:
             min(
-                50vw,
+                42vw,
                 calc(100dvh - 165px),
                 480px
             );
@@ -880,6 +1403,45 @@ and (
 
     .page-header {
         margin-bottom: 3px;
+    }
+
+    .game-layout {
+        grid-template-columns:
+            200px
+            auto
+            220px;
+
+        gap: 9px;
+    }
+
+    .engine-panel {
+        width: 200px;
+
+        padding: 9px;
+    }
+
+    .engine-panel h2 {
+        margin-bottom: 8px;
+
+        font-size: 0.85rem;
+    }
+
+    .engine-analysis-grid {
+        gap: 5px;
+    }
+
+    .engine-analysis-item {
+        padding:
+            5px
+            7px;
+    }
+
+    .engine-label {
+        font-size: 0.62rem;
+    }
+
+    .engine-value {
+        font-size: 0.78rem;
     }
 
     .captured-panel {
@@ -912,6 +1474,8 @@ and (
     }
 
     .side-panel {
+        width: 220px;
+
         height:
             calc(
                 100dvh - 45px
@@ -921,12 +1485,13 @@ and (
 
 
 /* =========================================================
-   TABLET / PORTRAIT MOBILE
+   45. TABLET / SMALLER DESKTOP
 
-   Still NO page scrolling.
+   Engine analysis moves above board.
+   Board stays centered.
+   History stays below board.
 
-   Board on top.
-   Small move-history panel underneath.
+   Page still does not scroll.
    ========================================================= */
 
 @media (
@@ -936,8 +1501,8 @@ and (
     :root {
         --board-size:
             min(
-                86vw,
-                calc(100dvh - 265px),
+                82vw,
+                calc(100dvh - 350px),
                 500px
             );
     }
@@ -953,7 +1518,7 @@ and (
     }
 
     .page-header h1 {
-        font-size: 1.45rem;
+        font-size: 1.4rem;
     }
 
     .page-header p {
@@ -972,6 +1537,50 @@ and (
         gap: 5px;
 
         overflow: hidden;
+    }
+
+    .engine-panel {
+        width:
+            calc(
+                var(--board-size) + 30px
+            );
+
+        max-width: 96vw;
+
+        padding:
+            5px
+            7px;
+    }
+
+    .engine-panel h2 {
+        margin-bottom: 4px;
+
+        font-size: 0.76rem;
+    }
+
+    .engine-analysis-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(4, 1fr);
+
+        gap: 4px;
+    }
+
+    .engine-analysis-item {
+        min-width: 0;
+
+        padding:
+            4px
+            5px;
+    }
+
+    .engine-label {
+        font-size: 0.56rem;
+    }
+
+    .engine-value {
+        font-size: 0.68rem;
     }
 
     .board-column {
@@ -1065,7 +1674,7 @@ and (
 
 
 /* =========================================================
-   SMALL MOBILE
+   46. SMALL MOBILE
    ========================================================= */
 
 @media (
@@ -1076,7 +1685,7 @@ and (
         --board-size:
             min(
                 88vw,
-                calc(100dvh - 245px),
+                calc(100dvh - 335px),
                 440px
             );
     }
@@ -1088,7 +1697,37 @@ and (
     }
 
     .page-header h1 {
-        font-size: 1.35rem;
+        font-size: 1.3rem;
+    }
+
+    .engine-panel {
+        padding:
+            4px
+            6px;
+    }
+
+    .engine-panel h2 {
+        font-size: 0.7rem;
+
+        margin-bottom: 3px;
+    }
+
+    .engine-analysis-grid {
+        gap: 3px;
+    }
+
+    .engine-analysis-item {
+        padding:
+            3px
+            4px;
+    }
+
+    .engine-label {
+        font-size: 0.5rem;
+    }
+
+    .engine-value {
+        font-size: 0.62rem;
     }
 
     .status-bar {
@@ -1182,11 +1821,69 @@ and (
     .move-cell {
         font-size: 0.68rem;
     }
+
+    .game-actions {
+        gap: 4px;
+
+        margin-top: 4px;
+
+        padding-top: 4px;
+    }
+
+    .secondary-actions {
+        gap: 4px;
+    }
+
+    .game-button {
+        padding:
+            4px
+            6px;
+
+        font-size: 0.66rem;
+    }
+
+    .game-modal {
+        padding: 14px;
+    }
+
+    .game-modal-dialog {
+        padding:
+            20px
+            16px
+            16px;
+
+        border-radius: 12px;
+    }
+
+    .game-modal-icon {
+        width: 44px;
+        height: 44px;
+
+        font-size: 1.5rem;
+    }
+
+    .game-modal-dialog h2 {
+        font-size: 1.1rem;
+    }
+
+    .game-modal-dialog p {
+        font-size: 0.82rem;
+    }
+
+    .modal-button {
+        min-height: 38px;
+
+        padding:
+            7px
+            9px;
+
+        font-size: 0.76rem;
+    }
 }
 
 
 /* =========================================================
-   VERY SMALL PHONES
+   47. VERY SMALL PHONES
    ========================================================= */
 
 @media (
@@ -1197,13 +1894,25 @@ and (
         --board-size:
             min(
                 86vw,
-                calc(100dvh - 230px),
+                calc(100dvh - 320px),
                 330px
             );
     }
 
     .page-header h1 {
         font-size: 1.2rem;
+    }
+
+    .engine-panel h2 {
+        font-size: 0.66rem;
+    }
+
+    .engine-label {
+        font-size: 0.46rem;
+    }
+
+    .engine-value {
+        font-size: 0.56rem;
     }
 
     .board-frame {
@@ -1226,10 +1935,10 @@ and (
 
 
 /* =========================================================
-   PHONE / TABLET LANDSCAPE
+   48. PHONE / TABLET LANDSCAPE
 
-   Everything goes side-by-side so the page still does not
-   scroll vertically.
+   Three columns:
+   Engine | Board | History
    ========================================================= */
 
 @media (
@@ -1243,7 +1952,7 @@ and (
         --board-size:
             min(
                 calc(100dvh - 125px),
-                48vw,
+                43vw,
                 340px
             );
     }
@@ -1270,12 +1979,49 @@ and (
         display: grid;
 
         grid-template-columns:
+            160px
             auto
             180px;
 
         gap: 7px;
 
         align-items: center;
+
+        justify-content: center;
+    }
+
+    .engine-panel {
+        width: 160px;
+
+        padding: 7px;
+    }
+
+    .engine-panel h2 {
+        font-size: 0.72rem;
+
+        margin-bottom: 6px;
+    }
+
+    .engine-analysis-grid {
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 4px;
+    }
+
+    .engine-analysis-item {
+        padding:
+            4px
+            5px;
+    }
+
+    .engine-label {
+        font-size: 0.58rem;
+    }
+
+    .engine-value {
+        font-size: 0.68rem;
     }
 
     .board-column {
@@ -1363,491 +2109,4 @@ and (
     .move-cell {
         font-size: 0.62rem;
     }
-}
-
-
-/* =========================================================
-   GAME ACTION BUTTONS
-   ========================================================= */
-
-.game-actions {
-    flex: 0 0 auto;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 6px;
-
-    margin-top: 8px;
-
-    padding-top: 8px;
-
-    border-top:
-        1px solid
-        rgba(196, 131, 66, 0.30);
-}
-
-.secondary-actions {
-    display: grid;
-
-    grid-template-columns:
-        1fr
-        1fr;
-
-    gap: 6px;
-}
-
-.game-button {
-    width: 100%;
-
-    padding:
-        7px
-        10px;
-
-    border:
-        1px solid
-        rgba(196, 131, 66, 0.65);
-
-    border-radius: 7px;
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(88, 52, 29, 0.95),
-            rgba(54, 31, 19, 0.97)
-        );
-
-    color: #f3d09c;
-
-    font-size: 0.78rem;
-    font-weight: 700;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease,
-        background 0.15s ease;
-}
-
-.game-button:hover {
-    transform: translateY(-1px);
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(106, 62, 33, 0.98),
-            rgba(64, 36, 20, 0.98)
-        );
-
-    box-shadow:
-        0 4px 10px
-        rgba(0, 0, 0, 0.25);
-}
-
-.game-button:active {
-    transform: translateY(0);
-}
-
-.danger-button {
-    border-color:
-        rgba(184, 58, 34, 0.60);
-}
-
-.new-game-button {
-    color: #ffd497;
-
-    border-color:
-        rgba(218, 165, 69, 0.75);
-}
-
-
-/* Smaller buttons on mobile */
-
-@media (max-width: 600px) {
-
-    .game-actions {
-        gap: 4px;
-
-        margin-top: 4px;
-
-        padding-top: 4px;
-    }
-
-    .secondary-actions {
-        gap: 4px;
-    }
-
-    .game-button {
-        padding:
-            4px
-            6px;
-
-        font-size: 0.66rem;
-    }
-}
-
-
-/* =========================================================
-   GAME MODAL
-   ========================================================= */
-
-.game-modal {
-    position: fixed;
-
-    inset: 0;
-
-    display: none;
-
-    align-items: center;
-    justify-content: center;
-
-    padding: 20px;
-
-    z-index: 9999;
-}
-
-.game-modal.is-open {
-    display: flex;
-}
-
-
-/* =========================================================
-   MODAL BACKDROP
-   ========================================================= */
-
-.game-modal-backdrop {
-    position: absolute;
-
-    inset: 0;
-
-    background:
-        rgba(
-            18,
-            13,
-            10,
-            0.82
-        );
-
-    backdrop-filter: blur(3px);
-}
-
-
-/* =========================================================
-   MODAL WINDOW
-   ========================================================= */
-
-.game-modal-dialog {
-    position: relative;
-
-    z-index: 1;
-
-    width: min(
-        92vw,
-        420px
-    );
-
-    padding:
-        24px
-        24px
-        20px;
-
-    text-align: center;
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(61, 37, 24, 0.99),
-            rgba(29, 19, 13, 0.99)
-        );
-
-    border:
-        1px solid
-        rgba(196, 131, 66, 0.65);
-
-    border-radius: 16px;
-
-    box-shadow:
-        0 22px 55px
-        rgba(0, 0, 0, 0.60),
-        inset
-        0 0 0 1px
-        rgba(255, 222, 173, 0.05);
-}
-
-
-/* =========================================================
-   MODAL CHESS ICON
-   ========================================================= */
-
-.game-modal-icon {
-    width: 52px;
-    height: 52px;
-
-    margin:
-        0
-        auto
-        12px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    border:
-        1px solid
-        rgba(196, 131, 66, 0.55);
-
-    border-radius: 50%;
-
-    background:
-        linear-gradient(
-            145deg,
-            #672b18,
-            #4a1f11
-        );
-
-    color: #f5d29b;
-
-    font-size: 1.8rem;
-
-    box-shadow:
-        0 5px 15px
-        rgba(0, 0, 0, 0.30);
-}
-
-
-/* =========================================================
-   MODAL TITLE
-   ========================================================= */
-
-.game-modal-dialog h2 {
-    margin:
-        0
-        0
-        9px;
-
-    font-size: 1.3rem;
-
-    color: #f5d29b;
-
-    letter-spacing: 0.3px;
-}
-
-
-/* =========================================================
-   MODAL MESSAGE
-   ========================================================= */
-
-.game-modal-dialog p {
-    margin:
-        0
-        auto
-        20px;
-
-    max-width: 330px;
-
-    font-size: 0.92rem;
-
-    line-height: 1.5;
-
-    color: #f3d7ac;
-}
-
-
-/* =========================================================
-   MODAL BUTTON AREA
-   ========================================================= */
-
-.game-modal-actions {
-    display: grid;
-
-    grid-template-columns:
-        1fr
-        1fr;
-
-    gap: 10px;
-}
-
-
-/* =========================================================
-   MODAL BUTTONS
-   ========================================================= */
-
-.modal-button {
-    min-height: 42px;
-
-    padding:
-        9px
-        14px;
-
-    border-radius: 8px;
-
-    font-family: inherit;
-
-    font-size: 0.84rem;
-
-    font-weight: 700;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.15s ease,
-        background 0.15s ease,
-        box-shadow 0.15s ease;
-}
-
-
-/* Cancel */
-
-.modal-cancel-button {
-    border:
-        1px solid
-        rgba(196, 131, 66, 0.45);
-
-    background:
-        rgba(255, 236, 205, 0.04);
-
-    color: #e5c18d;
-}
-
-.modal-cancel-button:hover {
-    background:
-        rgba(255, 236, 205, 0.09);
-
-    transform:
-        translateY(-1px);
-}
-
-
-/* Confirm */
-
-.modal-confirm-button {
-    border:
-        1px solid
-        rgba(196, 131, 66, 0.75);
-
-    background:
-        linear-gradient(
-            180deg,
-            #672b18,
-            #4a1f11
-        );
-
-    color: #ffd497;
-
-    box-shadow:
-        0 4px 12px
-        rgba(0, 0, 0, 0.25);
-}
-
-.modal-confirm-button:hover {
-    background:
-        linear-gradient(
-            180deg,
-            #74351d,
-            #552414
-        );
-
-    transform:
-        translateY(-1px);
-
-    box-shadow:
-        0 6px 15px
-        rgba(0, 0, 0, 0.32);
-}
-
-
-/* Resign / destructive confirmation */
-
-.modal-confirm-button.danger {
-    border-color:
-        rgba(184, 58, 34, 0.70);
-
-    background:
-        linear-gradient(
-            180deg,
-            #672b18,
-            #3d180f
-        );
-}
-
-
-/* Button press */
-
-.modal-button:active {
-    transform:
-        translateY(0);
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 600px) {
-
-    .game-modal {
-        padding: 14px;
-    }
-
-    .game-modal-dialog {
-        padding:
-            20px
-            16px
-            16px;
-
-        border-radius: 12px;
-    }
-
-    .game-modal-icon {
-        width: 44px;
-        height: 44px;
-
-        font-size: 1.5rem;
-    }
-
-    .game-modal-dialog h2 {
-        font-size: 1.1rem;
-    }
-
-    .game-modal-dialog p {
-        font-size: 0.82rem;
-    }
-
-    .modal-button {
-        min-height: 38px;
-
-        padding:
-            7px
-            9px;
-
-        font-size: 0.76rem;
-    }
-}
-
-
-/*
-============================================================
-STOCKFISH ENGINE ARROW
-============================================================
-*/
-
-.engine-arrow {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 8;
-}
-
-.engine-arrow-line {
-    stroke: rgba(20, 20, 20, 0.82);
-    stroke-width: 18;
-    stroke-linecap: round;
-}
-
-.engine-arrow-head {
-    fill: rgba(20, 20, 20, 0.82);
 }

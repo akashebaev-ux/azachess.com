@@ -2,6 +2,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
@@ -27,52 +28,216 @@
 
     <main class="chess-page">
 
+        <!-- ==================================================
+             PAGE HEADER
+        =================================================== -->
+
         <header class="page-header">
+
             <h1>AzaChess</h1>
-            <p>Premium online chess experience</p>
+
+            <p>
+                Premium online chess experience
+            </p>
+
         </header>
+
+
+        <!-- ==================================================
+             GAME LAYOUT
+
+             LEFT   = Engine Analysis
+             CENTER = Chessboard
+             RIGHT  = Move History
+        =================================================== -->
 
         <section class="game-layout">
 
+
+            <!-- ==============================================
+                 LEFT PANEL - ENGINE ANALYSIS
+            =============================================== -->
+
+            <aside
+                class="engine-panel card-panel"
+                aria-labelledby="engine-analysis-title"
+            >
+
+                <h2 id="engine-analysis-title">
+                    Engine Analysis
+                </h2>
+
+
+                <div class="engine-analysis-grid">
+
+
+                    <!-- Evaluation -->
+
+                    <div class="engine-analysis-item">
+
+                        <span class="engine-label">
+                            Evaluation
+                        </span>
+
+                        <strong
+                            id="engine-evaluation"
+                            class="engine-value"
+                        >
+                            Analysing...
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Best move -->
+
+                    <div class="engine-analysis-item">
+
+                        <span class="engine-label">
+                            Best move
+                        </span>
+
+                        <strong
+                            id="engine-best-move"
+                            class="engine-value"
+                        >
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Move quality -->
+
+                    <div class="engine-analysis-item">
+
+                        <span class="engine-label">
+                            Your move
+                        </span>
+
+                        <strong
+                            id="engine-move-quality"
+                            class="engine-value"
+                        >
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Engine depth -->
+
+                    <div class="engine-analysis-item">
+
+                        <span class="engine-label">
+                            Depth
+                        </span>
+
+                        <strong
+                            id="engine-depth"
+                            class="engine-value"
+                        >
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+
+            <!-- ==============================================
+                 CENTER - CHESSBOARD
+            =============================================== -->
+
             <div class="board-column">
 
+
+                <!-- Current turn -->
+
                 <div class="status-bar card-panel">
+
                     <p>
                         Turn:
-                        <strong id="turn-display">White</strong>
+                        <strong id="turn-display">
+                            White
+                        </strong>
                     </p>
+
                 </div>
+
+
+                <!-- Captured black pieces -->
 
                 <div class="captured-panel card-panel">
-                    <h2>Black pieces taken</h2>
-                    <div id="captured-black" class="captured-pieces"></div>
+
+                    <h2>
+                        Black pieces taken
+                    </h2>
+
+                    <div
+                        id="captured-black"
+                        class="captured-pieces"
+                    ></div>
+
                 </div>
 
+
+                <!-- Chessboard -->
+
                 <div class="board-frame">
+
                     <div
                         id="chessboard"
                         class="chessboard"
                         aria-label="Chess board"
                     ></div>
+
                 </div>
 
+
+                <!-- Captured white pieces -->
+
                 <div class="captured-panel card-panel">
-                    <h2>White pieces taken</h2>
-                    <div id="captured-white" class="captured-pieces"></div>
+
+                    <h2>
+                        White pieces taken
+                    </h2>
+
+                    <div
+                        id="captured-white"
+                        class="captured-pieces"
+                    ></div>
+
                 </div>
 
             </div>
 
+
+            <!-- ==============================================
+                 RIGHT PANEL - MOVE HISTORY
+            =============================================== -->
+
             <aside class="side-panel card-panel">
 
-                <h2>Move History</h2>
+                <h2>
+                    Move History
+                </h2>
+
 
                 <div
                     id="move-history"
                     class="move-history"
                 ></div>
 
+
+                <!-- ==========================================
+                     GAME ACTIONS
+                =========================================== -->
+
                 <div class="game-actions">
+
 
                     <div class="secondary-actions">
 
@@ -84,6 +249,7 @@
                             Draw
                         </button>
 
+
                         <button
                             id="resign-button"
                             class="game-button danger-button"
@@ -93,6 +259,7 @@
                         </button>
 
                     </div>
+
 
                     <button
                         id="new-game-button"
@@ -110,16 +277,22 @@
 
     </main>
 
-    <!-- Game confirmation modal -->
+
+    <!-- ==================================================
+         GAME CONFIRMATION MODAL
+    =================================================== -->
+
     <div
         id="game-modal"
         class="game-modal"
         aria-hidden="true"
     >
+
         <div
             class="game-modal-backdrop"
             id="game-modal-backdrop"
         ></div>
+
 
         <div
             class="game-modal-dialog"
@@ -128,17 +301,25 @@
             aria-labelledby="game-modal-title"
             aria-describedby="game-modal-message"
         >
-            <div class="game-modal-icon">
+
+            <div
+                class="game-modal-icon"
+                aria-hidden="true"
+            >
                 ♔
             </div>
+
 
             <h2 id="game-modal-title">
                 Confirm
             </h2>
 
+
             <p id="game-modal-message"></p>
 
+
             <div class="game-modal-actions">
+
 
                 <button
                     id="game-modal-cancel"
@@ -147,6 +328,7 @@
                 >
                     Cancel
                 </button>
+
 
                 <button
                     id="game-modal-confirm"
@@ -157,10 +339,20 @@
                 </button>
 
             </div>
+
         </div>
+
     </div>
 
-    <script src="{% static 'game/js/chess.js' %}"></script>
+
+    <!-- ==================================================
+         JAVASCRIPT
+    =================================================== -->
+
+    <script
+        src="{% static 'game/js/chess.js' %}"
+    ></script>
 
 </body>
+
 </html>

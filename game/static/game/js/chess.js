@@ -54,6 +54,35 @@ document.addEventListener("DOMContentLoaded", function () {
             "game-modal-confirm"
         );
 
+    /*
+    ============================================================
+    ENGINE ANALYSIS ELEMENTS
+    ============================================================
+    */
+
+    const engineEvaluation =
+        document.getElementById(
+            "engine-evaluation"
+        );
+
+    const engineBestMove =
+        document.getElementById(
+            "engine-best-move"
+        );
+
+    const engineMoveQuality =
+        document.getElementById(
+            "engine-move-quality"
+        );
+
+    const engineDepth =
+        document.getElementById(
+            "engine-depth"
+        );
+
+
+
+
 
     /*
     ============================================================
@@ -3943,6 +3972,102 @@ function getCSRFToken() {
 }
 
 
+
+/*
+============================================================
+UPDATE ENGINE ANALYSIS PANEL
+============================================================
+*/
+
+function updateEnginePanel(
+    data,
+    moveQuality = null
+) {
+    /*
+    Evaluation
+    */
+
+    if (
+        data.mate !== null &&
+        data.mate !== undefined
+    ) {
+        const mateNumber =
+            Math.abs(data.mate);
+
+        if (data.mate > 0) {
+            engineEvaluation.textContent =
+                `White mate in ${mateNumber}`;
+        } else {
+            engineEvaluation.textContent =
+                `Black mate in ${mateNumber}`;
+        }
+
+    } else if (
+        data.evaluation !== null &&
+        data.evaluation !== undefined
+    ) {
+        const evaluation =
+            Number(data.evaluation);
+
+        engineEvaluation.textContent =
+            evaluation > 0
+                ? `+${evaluation.toFixed(2)}`
+                : evaluation.toFixed(2);
+
+    } else {
+        engineEvaluation.textContent = "—";
+    }
+
+
+    /*
+    Best move
+    */
+
+    engineBestMove.textContent =
+        data.best_move || "—";
+
+
+    /*
+    Engine depth
+    */
+
+    engineDepth.textContent =
+        data.depth ?? "—";
+
+
+    /*
+    Move quality
+    */
+
+    engineMoveQuality.className =
+        "engine-value";
+
+    if (!moveQuality) {
+        engineMoveQuality.textContent = "—";
+        return;
+    }
+
+    engineMoveQuality.textContent =
+        moveQuality;
+
+
+    /*
+    Add quality colour
+    */
+
+    const qualityClass =
+        "quality-" +
+        moveQuality
+            .toLowerCase()
+            .replace(/\s+/g, "-");
+
+    engineMoveQuality.classList.add(
+        qualityClass
+    );
+}
+
+
+
 /*
 ============================================================
 ANALYSE POSITION WITH STOCKFISH
@@ -4050,6 +4175,7 @@ async function analyseWithStockfish(
         so the player who moved is the
         opposite color.
         */
+        let moveQuality = null;
 
         if (classifyPlayerMove) {
             const playerColor =
@@ -4061,7 +4187,7 @@ async function analyseWithStockfish(
                 previousEngineEvaluation !== null &&
                 data.evaluation !== null
             ) {
-                const moveQuality =
+                moveQuality =
                     classifyMove(
                         previousEngineEvaluation,
                         data.evaluation,
@@ -4079,6 +4205,34 @@ async function analyseWithStockfish(
                 );
             }
         }
+
+
+        /*
+        Update visible Engine Analysis panel.
+        */
+
+        updateEnginePanel(
+            data,
+            moveQuality
+        );
+
+
+        /*
+        Store current evaluation for
+        comparison after the next move.
+        */
+
+        previousEngineEvaluation =
+            data.evaluation;
+
+
+        /*
+        Show Stockfish recommended move.
+        */
+
+        drawEngineArrow(
+            data.best_move
+        );
 
 
         /*
