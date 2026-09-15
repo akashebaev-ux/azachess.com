@@ -181,6 +181,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let lastMove = null;
 
+    let previousEngineEvaluation = null;
+
 
     /*
     Captured pieces.
@@ -1891,7 +1893,6 @@ document.addEventListener("DOMContentLoaded", function () {
         renderCapturedPieces();
 
         renderMoveHistory();
-
 
         /*
         Ask Stockfish to analyse
@@ -3708,8 +3709,11 @@ function boardToFEN() {
             ? "w"
             : "b";
 
-    const castling = getFENCastlingRights();
-    const enPassant = getFENEnPassantSquare();
+    const castling =
+        getFENCastlingRights();
+
+    const enPassant =
+        getFENEnPassantSquare();
 
     return (
         fenRows.join("/") +
@@ -3730,8 +3734,16 @@ function boardToFEN() {
 function getFENCastlingRights() {
     let rights = "";
 
-    const whiteKing = board[7][4];
-    const blackKing = board[0][4];
+    const whiteKing =
+        board[7][4];
+
+    const blackKing =
+        board[0][4];
+
+
+    /*
+    White castling.
+    */
 
     if (
         whiteKing &&
@@ -3739,8 +3751,11 @@ function getFENCastlingRights() {
         whiteKing.color === "white" &&
         !whiteKing.hasMoved
     ) {
-        const rookH1 = board[7][7];
-        const rookA1 = board[7][0];
+        const rookH1 =
+            board[7][7];
+
+        const rookA1 =
+            board[7][0];
 
         if (
             rookH1 &&
@@ -3761,14 +3776,22 @@ function getFENCastlingRights() {
         }
     }
 
+
+    /*
+    Black castling.
+    */
+
     if (
         blackKing &&
         blackKing.type === "king" &&
         blackKing.color === "black" &&
         !blackKing.hasMoved
     ) {
-        const rookH8 = board[0][7];
-        const rookA8 = board[0][0];
+        const rookH8 =
+            board[0][7];
+
+        const rookA8 =
+            board[0][0];
 
         if (
             rookH8 &&
@@ -3805,12 +3828,110 @@ function getFENEnPassantSquare() {
 }
 
 
-function getCSRFToken() {
-    const cookie = document.cookie
-        .split("; ")
-        .find(row =>
-            row.startsWith("csrftoken=")
+/*
+============================================================
+MOVE QUALITY
+============================================================
+*/
+
+function classifyMove(
+    previousEvaluation,
+    newEvaluation,
+    playerColor
+) {
+    if (
+        previousEvaluation === null ||
+        newEvaluation === null
+    ) {
+        return null;
+    }
+
+    let evaluationLoss;
+
+    /*
+    Evaluations are always from
+    White's point of view.
+
+    Positive = White advantage.
+    Negative = Black advantage.
+    */
+
+    if (playerColor === "white") {
+        evaluationLoss =
+            previousEvaluation -
+            newEvaluation;
+    } else {
+        evaluationLoss =
+            newEvaluation -
+            previousEvaluation;
+    }
+
+    /*
+    Sometimes the player's move
+    improves the evaluation.
+
+    In that case there is no loss.
+    */
+
+    evaluationLoss =
+        Math.max(
+            0,
+            evaluationLoss
         );
+
+    console.log(
+        "Evaluation loss:",
+        evaluationLoss
+    );
+
+
+    /*
+    Our own simple classification
+    thresholds.
+
+    These are not Chess.com ratings.
+    */
+
+    if (evaluationLoss <= 0.10) {
+        return "Best";
+    }
+
+    if (evaluationLoss <= 0.25) {
+        return "Excellent";
+    }
+
+    if (evaluationLoss <= 0.50) {
+        return "Good";
+    }
+
+    if (evaluationLoss <= 1.00) {
+        return "Inaccuracy";
+    }
+
+    if (evaluationLoss <= 2.00) {
+        return "Mistake";
+    }
+
+    return "Blunder";
+}
+
+
+/*
+============================================================
+CSRF TOKEN
+============================================================
+*/
+
+function getCSRFToken() {
+    const cookie =
+        document.cookie
+            .split("; ")
+            .find(
+                row =>
+                    row.startsWith(
+                        "csrftoken="
+                    )
+            );
 
     if (!cookie) {
         return "";
@@ -3822,12 +3943,30 @@ function getCSRFToken() {
 }
 
 
-async function analyseWithStockfish() {
-    if (gameOver) {
+/*
+============================================================
+ANALYSE POSITION WITH STOCKFISH
+============================================================
+*/
+
+async function analyseWithStockfish(
+    classifyPlayerMove = true
+) {
+    /*
+    Do not request another analysis
+    after the game has finished,
+    except for initial analysis.
+    */
+
+    if (
+        gameOver &&
+        classifyPlayerMove
+    ) {
         return;
     }
 
-    const fen = boardToFEN();
+    const fen =
+        boardToFEN();
 
     console.log(
         "Sending position to Stockfish:",
@@ -3835,27 +3974,34 @@ async function analyseWithStockfish() {
     );
 
     try {
-        const response = await fetch(
-            "/analyse/",
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                "/analyse/",
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                    "X-CSRFToken":
-                        getCSRFToken()
-                },
+                        "X-CSRFToken":
+                            getCSRFToken()
+                    },
 
-                body: JSON.stringify({
-                    fen: fen
-                })
-            }
-        );
+                    body:
+                        JSON.stringify({
+                            fen: fen
+                        })
+                }
+            );
 
         const data =
             await response.json();
+
+
+        /*
+        Handle backend errors.
+        */
 
         if (!response.ok) {
             console.error(
@@ -3865,6 +4011,12 @@ async function analyseWithStockfish() {
 
             return;
         }
+
+
+        /*
+        Show engine information
+        in browser console.
+        */
 
         console.log(
             "Stockfish result:",
@@ -3876,14 +4028,84 @@ async function analyseWithStockfish() {
             data.best_move
         );
 
-        console.log(
-            "Evaluation:",
-            data.evaluation
-        );
+        if (data.mate !== null) {
+            console.log(
+                "Mate:",
+                data.mate
+            );
+        } else {
+            console.log(
+                "Evaluation:",
+                data.evaluation
+            );
+        }
 
-        drawEngineArrow(
-            data.best_move
-        );
+
+        /*
+        If this analysis happened
+        after a player's move,
+        determine who made that move.
+
+        currentTurn has already changed,
+        so the player who moved is the
+        opposite color.
+        */
+
+        if (classifyPlayerMove) {
+            const playerColor =
+                currentTurn === "white"
+                    ? "black"
+                    : "white";
+
+            if (
+                previousEngineEvaluation !== null &&
+                data.evaluation !== null
+            ) {
+                const moveQuality =
+                    classifyMove(
+                        previousEngineEvaluation,
+                        data.evaluation,
+                        playerColor
+                    );
+
+                console.log(
+                    "Player:",
+                    playerColor
+                );
+
+                console.log(
+                    "Move quality:",
+                    moveQuality
+                );
+            }
+        }
+
+
+        /*
+        Store current evaluation.
+
+        This becomes the "before"
+        evaluation when the next
+        move is played.
+        */
+
+        if (data.evaluation !== null) {
+            previousEngineEvaluation =
+                data.evaluation;
+        }
+
+
+        /*
+        Draw Stockfish's recommended
+        move for the player whose turn
+        it is now.
+        */
+
+        if (data.best_move) {
+            drawEngineArrow(
+                data.best_move
+            );
+        }
 
     } catch (error) {
         console.error(
@@ -3893,20 +4115,32 @@ async function analyseWithStockfish() {
     }
 }
 
+/*
+============================================================
+START GAME
+============================================================
+*/
 
-    /*
-    ============================================================
-    START GAME
-    ============================================================
-    */
+recordPosition();
 
-    recordPosition();
+updateTurnDisplay();
 
-    updateTurnDisplay();
+renderCapturedPieces();
 
-    renderCapturedPieces();
+renderMoveHistory();
 
-    renderMoveHistory();
+createBoard();
 
-    createBoard();
+
+/*
+Analyse the initial chess position.
+
+false means that this is only the
+starting evaluation.
+
+No player move should be classified.
+*/
+
+analyseWithStockfish(false);
+
 });

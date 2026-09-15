@@ -43,13 +43,25 @@ def analyse_position(request):
 
             best_move = info["pv"][0]
 
-            score = info["score"].pov(
-                board.turn
-            ).score(mate_score=100000)
+            score = info["score"].pov(chess.WHITE)
+
+            mate = score.mate()
+
+            if mate is not None:
+                evaluation = None
+            else:
+                centipawns = score.score()
+                evaluation = (
+                    round(centipawns / 100, 2)
+                    if centipawns is not None
+                    else None
+                )
 
             return JsonResponse({
                 "best_move": best_move.uci(),
-                "evaluation": score,
+                "evaluation": evaluation,
+                "mate": mate,
+                "depth": info.get("depth"),
             })
 
         finally:
