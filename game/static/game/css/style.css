@@ -180,6 +180,109 @@ body {
 
 
 /* =========================================================
+   7. CHESS TEACHER
+   ========================================================= */
+
+.chess-teacher {
+    width: 100%;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.teacher-title {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.teacher-avatar-wrapper {
+    position: relative;
+    width: 100%;
+    height: 190px;
+    overflow: hidden;
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.teacher-avatar {
+    display: block;
+
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+
+    object-fit: contain;
+    object-position: center bottom;
+}
+
+.teacher-speech {
+    position: relative;
+
+    margin-top: 8px;
+
+    padding:
+        10px
+        12px;
+
+    background:
+        rgba(255, 248, 231, 0.96);
+
+    border:
+        1px solid
+        rgba(151, 91, 43, 0.55);
+
+    border-radius: 12px;
+
+    color: #332116;
+
+    text-align: left;
+
+    font-size: 0.85rem;
+    line-height: 1.4;
+
+    box-shadow:
+        0 4px 12px
+        rgba(0, 0, 0, 0.18);
+}
+
+.teacher-speech::before {
+    content: "";
+
+    position: absolute;
+
+    top: -8px;
+    left: 50%;
+
+    width: 14px;
+    height: 14px;
+
+    background:
+        rgba(255, 248, 231, 0.96);
+
+    border-left:
+        1px solid
+        rgba(151, 91, 43, 0.55);
+
+    border-top:
+        1px solid
+        rgba(151, 91, 43, 0.55);
+
+    transform:
+        translateX(-50%)
+        rotate(45deg);
+}
+
+.teacher-speech p {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+}
+
+
+
+/* =========================================================
    7. LEFT PANEL - ENGINE ANALYSIS
    ========================================================= */
 
@@ -1480,6 +1583,31 @@ and (
             calc(
                 100dvh - 45px
             );
+    }
+        /* Chess teacher on short laptop screens */
+
+    .chess-teacher {
+        margin-bottom: 7px;
+    }
+
+    .teacher-title {
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+    }
+
+    .teacher-avatar-wrapper {
+        height: 120px;
+    }
+
+    .teacher-speech {
+        margin-top: 5px;
+
+        padding:
+            6px
+            8px;
+
+        font-size: 0.72rem;
+        line-height: 1.25;
     }
 }
 

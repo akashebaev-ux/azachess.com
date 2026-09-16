@@ -63,6 +63,35 @@
                 aria-labelledby="engine-analysis-title"
             >
 
+                <div class="chess-teacher">
+
+                    <h2 class="teacher-title">
+                        Your Chess Teacher
+                    </h2>
+
+                    <div class="teacher-avatar-wrapper">
+
+                        <img
+                            id="teacher-avatar"
+                            class="teacher-avatar"
+                            src="{% static 'game/images/teacher/chess-teacher.png' %}"
+                            alt="AzaChess virtual chess teacher"
+                        >
+
+                    </div>
+
+                    <div
+                        id="teacher-speech"
+                        class="teacher-speech"
+                        aria-live="polite"
+                    >
+                        <p id="teacher-message">
+                            Welcome! Make a move and I will analyse it.
+                        </p>
+                    </div>
+
+                </div>
+
                 <h2 id="engine-analysis-title">
                     Engine Analysis
                 </h2>
