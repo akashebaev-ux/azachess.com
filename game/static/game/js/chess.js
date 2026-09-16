@@ -80,7 +80,10 @@ document.addEventListener("DOMContentLoaded", function () {
             "engine-depth"
         );
 
-
+    const teacherMessage =
+        document.getElementById(
+            "teacher-message"
+        );
 
 
 
@@ -3971,7 +3974,94 @@ function getCSRFToken() {
     );
 }
 
+/*
+============================================================
+CHESS TEACHER MESSAGE
+============================================================
+*/
 
+function updateTeacherMessage(
+    data,
+    moveQuality = null
+) {
+    if (!teacherMessage) {
+        return;
+    }
+
+    /*
+    Initial analysis before the player moves.
+    */
+
+    if (!moveQuality) {
+        if (data.best_move) {
+            teacherMessage.textContent =
+                `I am ready. Look carefully at the position. ` +
+                `One strong move is ${data.best_move}.`;
+        }
+
+        return;
+    }
+
+
+    /*
+    Explain the quality of the player's move.
+    */
+
+    const messages = {
+        Best:
+            "Excellent! That was one of the strongest moves in the position.",
+
+        Excellent:
+            "Excellent move! You kept your position very strong.",
+
+        Good:
+            "Good move. Your position remains solid, but let's see whether there was something even stronger.",
+
+        Inaccuracy:
+            "Be careful. That move was slightly inaccurate. Let's look at the stronger continuation.",
+
+        Mistake:
+            "That was a mistake. Before moving, check your opponent's threats and tactical possibilities.",
+
+        Blunder:
+            "Watch out! That move gives your opponent a significant advantage. Let's examine what went wrong."
+    };
+
+
+    let message =
+        messages[moveQuality] ||
+        "Let's analyse this position.";
+
+
+    /*
+    Add Stockfish's recommended continuation.
+    */
+
+    if (data.best_move) {
+        message +=
+            ` From this position, I recommend looking at ${data.best_move}.`;
+    }
+
+
+    /*
+    Mate warning.
+    */
+
+    if (
+        data.mate !== null &&
+        data.mate !== undefined
+    ) {
+        const mateNumber =
+            Math.abs(data.mate);
+
+        message +=
+            ` There is a forced mate in ${mateNumber}.`;
+    }
+
+
+    teacherMessage.textContent =
+        message;
+}
 
 /*
 ============================================================
@@ -4212,6 +4302,11 @@ async function analyseWithStockfish(
         */
 
         updateEnginePanel(
+            data,
+            moveQuality
+        );
+
+        updateTeacherMessage(
             data,
             moveQuality
         );
