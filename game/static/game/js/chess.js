@@ -2907,6 +2907,605 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+    /*
+    ============================================================
+    TEACHER MOVE EXPLANATION
+    ============================================================
+    */
+
+    function getTeacherPieceName(piece) {
+        if (!piece) {
+            return "piece";
+        }
+
+        const names = {
+            pawn: "pawn",
+            knight: "knight",
+            bishop: "bishop",
+            rook: "rook",
+            queen: "queen",
+            king: "king"
+        };
+
+        return names[piece.type] || "piece";
+    }
+
+
+    function generateTeacherExplanation(
+        uciMove
+    ) {
+        const coordinates =
+            teacherUciToCoordinates(
+                uciMove
+            );
+
+        if (!coordinates) {
+            return "Let's examine this move.";
+        }
+
+        const {
+            fromRow,
+            fromColumn,
+            toRow,
+            toColumn
+        } = coordinates;
+
+        const piece =
+            board[fromRow][fromColumn];
+
+        if (!piece) {
+            return "Let's examine this move.";
+        }
+
+        const target =
+            board[toRow][toColumn];
+
+        const pieceName =
+            getTeacherPieceName(piece);
+
+        const destination =
+            getSquareName(
+                toRow,
+                toColumn
+            );
+
+        const reasons = [];
+
+
+        /*
+        Capture.
+        */
+
+        if (
+            target &&
+            target.color !== piece.color
+        ) {
+            reasons.push(
+                `captures the enemy ` +
+                `${getTeacherPieceName(target)}`
+            );
+        }
+
+
+        /*
+        Development from the original
+        back rank.
+        */
+
+        if (
+            piece.type === "knight" ||
+            piece.type === "bishop"
+        ) {
+            const startingRow =
+                piece.color === "white"
+                    ? 7
+                    : 0;
+
+            if (fromRow === startingRow) {
+                reasons.push(
+                    `develops the ${pieceName}`
+                );
+            }
+        }
+
+
+        /*
+        Central squares.
+        */
+
+        const centralSquares = [
+            "d4",
+            "e4",
+            "d5",
+            "e5"
+        ];
+
+        if (
+            centralSquares.includes(
+                destination
+            )
+        ) {
+            reasons.push(
+                "fights for the centre"
+            );
+        }
+
+
+        /*
+        Castling.
+        */
+
+        if (
+            piece.type === "king" &&
+            Math.abs(
+                toColumn - fromColumn
+            ) === 2
+        ) {
+            reasons.push(
+                "improves king safety by castling"
+            );
+        }
+
+
+        /*
+        Pawn development toward centre.
+        */
+
+        if (
+            piece.type === "pawn" &&
+            (
+                toColumn === 3 ||
+                toColumn === 4
+            )
+        ) {
+            if (
+                !reasons.includes(
+                    "fights for the centre"
+                )
+            ) {
+                reasons.push(
+                    "helps control the centre"
+                );
+            }
+        }
+
+
+        /*
+        Find enemy pieces that this piece
+        will attack after the move.
+        */
+
+        const temporaryBoard =
+            cloneBoard(board);
+
+        /*
+        Temporarily move the piece.
+        */
+
+        temporaryBoard[toRow][toColumn] =
+            temporaryBoard[fromRow][fromColumn];
+
+        temporaryBoard[fromRow][fromColumn] =
+            null;
+
+
+        /*
+        Find controlled squares from the
+        new position.
+        */
+
+        const originalBoard = board;
+
+        board = temporaryBoard;
+
+        const controlledSquares =
+            getTeacherControlledSquares(
+                toRow,
+                toColumn
+            );
+
+        board = originalBoard;
+
+
+        /*
+        Find enemy targets.
+        */
+
+        const attackedPieces = [];
+
+        controlledSquares.forEach(position => {
+            const attackedPiece =
+                temporaryBoard[
+                    position.row
+                ][
+                    position.column
+                ];
+
+            if (
+                attackedPiece &&
+                attackedPiece.color !== piece.color
+            ) {
+                attackedPieces.push(
+                    getTeacherPieceName(
+                        attackedPiece
+                    )
+                );
+            }
+        });
+
+
+        /*
+        Add attack explanation.
+        */
+
+        if (attackedPieces.length > 0) {
+            const uniqueTargets =
+                [...new Set(attackedPieces)];
+
+            if (uniqueTargets.length === 1) {
+                reasons.push(
+                    `attacks the enemy ` +
+                    `${uniqueTargets[0]}`
+                );
+            } else {
+                reasons.push(
+                    `creates attacks against ` +
+                    `${uniqueTargets.join(" and ")}`
+                );
+            }
+        }
+
+
+        /*
+        Build final sentence.
+        */
+
+        if (reasons.length === 0) {
+            return (
+                `The ${pieceName} moves to ` +
+                `${destination}. Let's examine ` +
+                `how this changes the position.`
+            );
+        }
+
+        if (reasons.length === 1) {
+            return (
+                `The ${pieceName} moves to ` +
+                `${destination} and ` +
+                `${reasons[0]}.`
+            );
+        }
+
+        const lastReason =
+            reasons.pop();
+
+        return (
+            `The ${pieceName} moves to ` +
+            `${destination}. It ` +
+            `${reasons.join(", ")} and ` +
+            `${lastReason}.`
+        );
+    }
+
+
+    /*
+    ============================================================
+    TEACHER ATTACKED SQUARES
+    ============================================================
+    */
+
+    function clearTeacherAttackSquares() {
+        chessboard
+            .querySelectorAll(
+                ".teacher-attacked-square"
+            )
+            .forEach(square => {
+                square.classList.remove(
+                    "teacher-attacked-square"
+                );
+            });
+
+        chessboard
+            .querySelectorAll(
+                ".teacher-important-target"
+            )
+            .forEach(square => {
+                square.classList.remove(
+                    "teacher-important-target"
+                );
+            });
+    }
+
+    function getTeacherControlledSquares(
+        row,
+        column
+    ) {
+        const piece =
+            board[row][column];
+
+        if (!piece) {
+            return [];
+        }
+
+        const squares = [];
+
+        /*
+        Pawn attacks.
+        Pawns attack diagonally,
+        NOT directly forward.
+        */
+
+        if (piece.type === "pawn") {
+            const direction =
+                piece.color === "white"
+                    ? -1
+                    : 1;
+
+            for (const offset of [-1, 1]) {
+                const targetRow =
+                    row + direction;
+
+                const targetColumn =
+                    column + offset;
+
+                if (
+                    isInsideBoard(
+                        targetRow,
+                        targetColumn
+                    )
+                ) {
+                    squares.push({
+                        row: targetRow,
+                        column: targetColumn
+                    });
+                }
+            }
+
+            return squares;
+        }
+
+
+        /*
+        Knight attacks.
+        */
+
+        if (piece.type === "knight") {
+            const offsets = [
+                [-2, -1],
+                [-2, 1],
+                [-1, -2],
+                [-1, 2],
+                [1, -2],
+                [1, 2],
+                [2, -1],
+                [2, 1]
+            ];
+
+            for (
+                const [
+                    rowOffset,
+                    columnOffset
+                ] of offsets
+            ) {
+                const targetRow =
+                    row + rowOffset;
+
+                const targetColumn =
+                    column + columnOffset;
+
+                if (
+                    isInsideBoard(
+                        targetRow,
+                        targetColumn
+                    )
+                ) {
+                    squares.push({
+                        row: targetRow,
+                        column: targetColumn
+                    });
+                }
+            }
+
+            return squares;
+        }
+
+
+        /*
+        King controls every adjacent square.
+        */
+
+        if (piece.type === "king") {
+            for (
+                let rowOffset = -1;
+                rowOffset <= 1;
+                rowOffset++
+            ) {
+                for (
+                    let columnOffset = -1;
+                    columnOffset <= 1;
+                    columnOffset++
+                ) {
+                    if (
+                        rowOffset === 0 &&
+                        columnOffset === 0
+                    ) {
+                        continue;
+                    }
+
+                    const targetRow =
+                        row + rowOffset;
+
+                    const targetColumn =
+                        column + columnOffset;
+
+                    if (
+                        isInsideBoard(
+                            targetRow,
+                            targetColumn
+                        )
+                    ) {
+                        squares.push({
+                            row: targetRow,
+                            column: targetColumn
+                        });
+                    }
+                }
+            }
+
+            return squares;
+        }
+
+
+        /*
+        Sliding pieces:
+        bishop, rook and queen.
+        */
+
+        let directions = [];
+
+        if (piece.type === "bishop") {
+            directions = [
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            ];
+        }
+
+        if (piece.type === "rook") {
+            directions = [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1]
+            ];
+        }
+
+        if (piece.type === "queen") {
+            directions = [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1],
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            ];
+        }
+
+        for (
+            const [
+                rowDirection,
+                columnDirection
+            ] of directions
+        ) {
+            let targetRow =
+                row + rowDirection;
+
+            let targetColumn =
+                column + columnDirection;
+
+            while (
+                isInsideBoard(
+                    targetRow,
+                    targetColumn
+                )
+            ) {
+                /*
+                This square is controlled,
+                even if a piece occupies it.
+                */
+
+                squares.push({
+                    row: targetRow,
+                    column: targetColumn
+                });
+
+                /*
+                Pieces block bishops,
+                rooks and queens.
+                */
+
+                if (
+                    board[
+                        targetRow
+                    ][
+                        targetColumn
+                    ]
+                ) {
+                    break;
+                }
+
+                targetRow +=
+                    rowDirection;
+
+                targetColumn +=
+                    columnDirection;
+            }
+        }
+
+        return squares;
+    }
+
+
+    function showTeacherAttacks(
+        row,
+        column
+    ) {
+        clearTeacherAttackSquares();
+
+        const piece =
+            board[row][column];
+
+        if (!piece) {
+            return;
+        }
+
+        const attackedSquares =
+            getTeacherControlledSquares(
+                row,
+                column
+            );
+
+        attackedSquares.forEach(position => {
+            const square =
+                chessboard.querySelector(
+                    `[data-row="${position.row}"]` +
+                    `[data-column="${position.column}"]`
+                );
+
+            if (!square) {
+                return;
+            }
+
+            square.classList.add(
+                "teacher-attacked-square"
+            );
+
+            const target =
+                board[
+                    position.row
+                ][
+                    position.column
+                ];
+
+            /*
+            Enemy pieces get a stronger
+            target highlight.
+            */
+
+            if (
+                target &&
+                target.color !== piece.color
+            ) {
+                square.classList.add(
+                    "teacher-important-target"
+                );
+            }
+        });
+    }
+
 
     async function teacherDemonstrateMove(
         uciMove,
@@ -2935,12 +3534,15 @@ document.addEventListener("DOMContentLoaded", function () {
         is about to demonstrate.
         */
 
-        if (
-            teacherMessage &&
-            explanation
-        ) {
+        const teacherExplanation =
+            explanation ||
+            generateTeacherExplanation(
+                uciMove
+            );
+
+        if (teacherMessage) {
             teacherMessage.textContent =
-                explanation;
+                teacherExplanation;
         }
 
         /*
@@ -3026,7 +3628,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         updateTurnDisplay();
 
-        await teacherSleep(1100);
+        /*
+        Show what the demonstrated piece
+        can now attack/control.
+        */
+
+        showTeacherAttacks(
+            move.row,
+            move.column
+        );
+
+        await teacherSleep(1800);
 
         return true;
     }
@@ -3052,8 +3664,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 variation[index];
 
             const explanation =
-                explanations[index] ||
-                `Watch this move: ${uciMove}.`;
+                explanations[index] || "";
 
             const successful =
                 await teacherDemonstrateMove(
@@ -4898,11 +5509,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     analyseWithStockfish(false);
 
-    window.teacherTest = async function () {
-        await teacherDemonstrateMove(
-            "e2e4",
-            "White moves the king pawn to e4 to fight for the centre."
-        );
-    };
+    /*
+    Expose teacher functions for testing.
+    */
+
+    window.teacherDemonstrateMove =
+        teacherDemonstrateMove;
+
+    window.teacherDemonstrateLine =
+        teacherDemonstrateLine;
+
 
 });
