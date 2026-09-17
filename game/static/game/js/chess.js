@@ -3572,20 +3572,21 @@ document.addEventListener("DOMContentLoaded", function () {
     function clearTeacherAttackSquares() {
         chessboard
             .querySelectorAll(
-                ".teacher-attacked-square"
+                ".teacher-control-marker, " +
+                ".teacher-attack-marker"
             )
-            .forEach(square => {
-                square.classList.remove(
-                    "teacher-attacked-square"
-                );
+            .forEach(marker => {
+                marker.remove();
             });
 
         chessboard
             .querySelectorAll(
+                ".teacher-attacked-square, " +
                 ".teacher-important-target"
             )
             .forEach(square => {
                 square.classList.remove(
+                    "teacher-attacked-square",
                     "teacher-important-target"
                 );
             });
@@ -3853,11 +3854,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!square) {
                 return;
             }
-
-            square.classList.add(
-                "teacher-attacked-square"
-            );
-
             const target =
                 board[
                     position.row
@@ -3865,19 +3861,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     position.column
                 ];
 
-            /*
-            Enemy pieces get a stronger
-            target highlight.
-            */
+            const marker =
+                document.createElement("span");
 
             if (
                 target &&
                 target.color !== piece.color
             ) {
-                square.classList.add(
-                    "teacher-important-target"
-                );
+                marker.className =
+                    "teacher-attack-marker";
+            } else {
+                marker.className =
+                    "teacher-control-marker";
             }
+
+            square.appendChild(marker);
+
         });
     }
 
