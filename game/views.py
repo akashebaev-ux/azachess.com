@@ -36,32 +36,87 @@ def analyse_position(request):
         )
 
         try:
-            info = engine.analyse(
+            analyses = engine.analyse(
                 board,
                 chess.engine.Limit(depth=15),
+                multipv=5,
             )
 
-            best_move = info["pv"][0]
+            candidate_moves = []
 
-            score = info["score"].pov(chess.WHITE)
+            for info in analyses:
+                pv = info.get("pv", [])
 
-            mate = score.mate()
+                if not pv:
+                    continue
 
-            if mate is not None:
-                evaluation = None
-            else:
-                centipawns = score.score()
-                evaluation = (
-                    round(centipawns / 100, 2)
-                    if centipawns is not None
-                    else None
+                best_move = pv[0]
+
+                score = info["score"].pov(
+                    chess.WHITE
                 )
 
+                mate = score.mate()
+
+                if mate is not None:
+                    evaluation = None
+                else:
+                    centipawns = score.score()
+
+                    evaluation = (
+                        round(
+                            centipawns / 100,
+                            2,
+                        )
+                        if centipawns is not None
+                        else None
+                    )
+
+                # Send several moves from the
+                # variation to the teacher.
+                variation = [
+                    move.uci()
+                    for move in pv[:8]
+                ]
+
+                candidate_moves.append({
+                    "move": best_move.uci(),
+                    "evaluation": evaluation,
+                    "mate": mate,
+                    "depth": info.get("depth"),
+                    "variation": variation,
+                })
+
+            if not candidate_moves:
+                return JsonResponse(
+                    {
+                        "error":
+                            "Stockfish returned no moves."
+                    },
+                    status=400,
+                )
+
+            first_move = candidate_moves[0]
+
+            # Keep the old fields so your
+            # existing JavaScript continues
+            # working.
             return JsonResponse({
-                "best_move": best_move.uci(),
-                "evaluation": evaluation,
-                "mate": mate,
-                "depth": info.get("depth"),
+                "best_move":
+                    first_move["move"],
+
+                "evaluation":
+                    first_move["evaluation"],
+
+                "mate":
+                    first_move["mate"],
+
+                "depth":
+                    first_move["depth"],
+
+                # New teacher data
+                "candidate_moves":
+                    candidate_moves,
             })
 
         finally:

@@ -2266,290 +2266,808 @@ document.addEventListener("DOMContentLoaded", function () {
         chessboard.appendChild(svg);
     }
 
-/*
-============================================================
-STOCKFISH RECOMMENDATION ARROW
-============================================================
-*/
-
-function drawEngineArrow(bestMove) {
     /*
-    Remove previous engine arrow.
+    ============================================================
+    STOCKFISH RECOMMENDATION ARROW
+    ============================================================
     */
-    const oldArrow =
-        chessboard.querySelector(".engine-arrow");
 
-    if (oldArrow) {
-        oldArrow.remove();
-    }
+    function drawEngineArrow(bestMove) {
+        /*
+        Remove previous engine arrow.
+        */
+        const oldArrow =
+            chessboard.querySelector(".engine-arrow");
 
-    if (!bestMove || bestMove.length < 4) {
-        return;
-    }
+        if (oldArrow) {
+            oldArrow.remove();
+        }
 
-    /*
-    Stockfish gives moves such as:
-    e2e4
-    g8f6
-    */
-    const fromFile = bestMove[0];
-    const fromRank = parseInt(bestMove[1], 10);
+        if (!bestMove || bestMove.length < 4) {
+            return;
+        }
 
-    const toFile = bestMove[2];
-    const toRank = parseInt(bestMove[3], 10);
+        /*
+        Stockfish gives moves such as:
+        e2e4
+        g8f6
+        */
+        const fromFile = bestMove[0];
+        const fromRank = parseInt(bestMove[1], 10);
 
-    const fromColumn =
-        boardFiles.indexOf(
-            fromFile.toUpperCase()
+        const toFile = bestMove[2];
+        const toRank = parseInt(bestMove[3], 10);
+
+        const fromColumn =
+            boardFiles.indexOf(
+                fromFile.toUpperCase()
+            );
+
+        const toColumn =
+            boardFiles.indexOf(
+                toFile.toUpperCase()
+            );
+
+        const fromRow = 8 - fromRank;
+        const toRow = 8 - toRank;
+
+        if (
+            fromColumn === -1 ||
+            toColumn === -1
+        ) {
+            return;
+        }
+
+        const svgNamespace =
+            "http://www.w3.org/2000/svg";
+
+        const svg =
+            document.createElementNS(
+                svgNamespace,
+                "svg"
+            );
+
+        svg.classList.add(
+            "move-arrow",
+            "engine-arrow"
         );
 
-    const toColumn =
-        boardFiles.indexOf(
-            toFile.toUpperCase()
+        svg.setAttribute(
+            "viewBox",
+            "0 0 800 800"
         );
 
-    const fromRow = 8 - fromRank;
-    const toRow = 8 - toRank;
+        svg.setAttribute(
+            "preserveAspectRatio",
+            "none"
+        );
 
-    if (
-        fromColumn === -1 ||
-        toColumn === -1
+        const startX =
+            fromColumn * 100 + 50;
+
+        const startY =
+            fromRow * 100 + 50;
+
+        const targetX =
+            toColumn * 100 + 50;
+
+        const targetY =
+            toRow * 100 + 50;
+
+        const deltaX =
+            targetX - startX;
+
+        const deltaY =
+            targetY - startY;
+
+        const distance =
+            Math.sqrt(
+                deltaX * deltaX +
+                deltaY * deltaY
+            );
+
+        if (distance === 0) {
+            return;
+        }
+
+        const unitX =
+            deltaX / distance;
+
+        const unitY =
+            deltaY / distance;
+
+        const endX =
+            targetX - unitX * 28;
+
+        const endY =
+            targetY - unitY * 28;
+
+
+        /*
+        Arrow line.
+        */
+
+        const line =
+            document.createElementNS(
+                svgNamespace,
+                "line"
+            );
+
+        line.setAttribute("x1", startX);
+        line.setAttribute("y1", startY);
+        line.setAttribute("x2", endX);
+        line.setAttribute("y2", endY);
+
+        line.classList.add(
+            "engine-arrow-line"
+        );
+
+
+        /*
+        Arrow head.
+        */
+
+        const arrowLength = 34;
+        const arrowWidth = 25;
+
+        const baseX =
+            targetX -
+            unitX * arrowLength;
+
+        const baseY =
+            targetY -
+            unitY * arrowLength;
+
+        const perpendicularX = -unitY;
+        const perpendicularY = unitX;
+
+        const leftX =
+            baseX +
+            perpendicularX * arrowWidth;
+
+        const leftY =
+            baseY +
+            perpendicularY * arrowWidth;
+
+        const rightX =
+            baseX -
+            perpendicularX * arrowWidth;
+
+        const rightY =
+            baseY -
+            perpendicularY * arrowWidth;
+
+        const arrowHead =
+            document.createElementNS(
+                svgNamespace,
+                "polygon"
+            );
+
+        arrowHead.setAttribute(
+            "points",
+            `${targetX},${targetY} ` +
+            `${leftX},${leftY} ` +
+            `${rightX},${rightY}`
+        );
+
+        arrowHead.classList.add(
+            "engine-arrow-head"
+        );
+
+        svg.appendChild(line);
+        svg.appendChild(arrowHead);
+
+        chessboard.appendChild(svg);
+    }
+
+
+    /*
+    ============================================================
+    TEACHER RECOMMENDATION ARROW
+    ============================================================
+    */
+
+    function drawTeacherArrow(bestMove) {
+        /*
+        Remove previous teacher arrow.
+        */
+
+        const oldArrow =
+            chessboard.querySelector(
+                ".teacher-arrow"
+            );
+
+        if (oldArrow) {
+            oldArrow.remove();
+        }
+
+        if (!bestMove || bestMove.length < 4) {
+            return;
+        }
+
+
+        /*
+        Convert Stockfish UCI notation,
+        for example e2e4, into board coordinates.
+        */
+
+        const fromFile = bestMove[0];
+        const fromRank =
+            parseInt(bestMove[1], 10);
+
+        const toFile = bestMove[2];
+        const toRank =
+            parseInt(bestMove[3], 10);
+
+        const fromColumn =
+            boardFiles.indexOf(
+                fromFile.toUpperCase()
+            );
+
+        const toColumn =
+            boardFiles.indexOf(
+                toFile.toUpperCase()
+            );
+
+        const fromRow =
+            8 - fromRank;
+
+        const toRow =
+            8 - toRank;
+
+        if (
+            fromColumn === -1 ||
+            toColumn === -1
+        ) {
+            return;
+        }
+
+
+        /*
+        Create SVG overlay.
+        */
+
+        const svgNamespace =
+            "http://www.w3.org/2000/svg";
+
+        const svg =
+            document.createElementNS(
+                svgNamespace,
+                "svg"
+            );
+
+        svg.classList.add(
+            "move-arrow",
+            "teacher-arrow"
+        );
+
+        svg.setAttribute(
+            "viewBox",
+            "0 0 800 800"
+        );
+
+        svg.setAttribute(
+            "preserveAspectRatio",
+            "none"
+        );
+
+
+        /*
+        Calculate square centres.
+        */
+
+        const startX =
+            fromColumn * 100 + 50;
+
+        const startY =
+            fromRow * 100 + 50;
+
+        const targetX =
+            toColumn * 100 + 50;
+
+        const targetY =
+            toRow * 100 + 50;
+
+        const deltaX =
+            targetX - startX;
+
+        const deltaY =
+            targetY - startY;
+
+        const distance =
+            Math.sqrt(
+                deltaX * deltaX +
+                deltaY * deltaY
+            );
+
+        if (distance === 0) {
+            return;
+        }
+
+        const unitX =
+            deltaX / distance;
+
+        const unitY =
+            deltaY / distance;
+
+
+        /*
+        Stop the line before the arrowhead.
+        */
+
+        const endX =
+            targetX - unitX * 28;
+
+        const endY =
+            targetY - unitY * 28;
+
+
+        /*
+        Arrow line.
+        */
+
+        const line =
+            document.createElementNS(
+                svgNamespace,
+                "line"
+            );
+
+        line.setAttribute(
+            "x1",
+            startX
+        );
+
+        line.setAttribute(
+            "y1",
+            startY
+        );
+
+        line.setAttribute(
+            "x2",
+            endX
+        );
+
+        line.setAttribute(
+            "y2",
+            endY
+        );
+
+        line.classList.add(
+            "teacher-arrow-line"
+        );
+
+
+        /*
+        Arrow head.
+        */
+
+        const arrowLength = 34;
+        const arrowWidth = 25;
+
+        const baseX =
+            targetX -
+            unitX * arrowLength;
+
+        const baseY =
+            targetY -
+            unitY * arrowLength;
+
+        const perpendicularX =
+            -unitY;
+
+        const perpendicularY =
+            unitX;
+
+        const leftX =
+            baseX +
+            perpendicularX * arrowWidth;
+
+        const leftY =
+            baseY +
+            perpendicularY * arrowWidth;
+
+        const rightX =
+            baseX -
+            perpendicularX * arrowWidth;
+
+        const rightY =
+            baseY -
+            perpendicularY * arrowWidth;
+
+        const arrowHead =
+            document.createElementNS(
+                svgNamespace,
+                "polygon"
+            );
+
+        arrowHead.setAttribute(
+            "points",
+            `${targetX},${targetY} ` +
+            `${leftX},${leftY} ` +
+            `${rightX},${rightY}`
+        );
+
+        arrowHead.classList.add(
+            "teacher-arrow-head"
+        );
+
+        svg.appendChild(line);
+        svg.appendChild(arrowHead);
+
+        chessboard.appendChild(svg);
+    }
+
+        function createMoveNotation({
+            originalPieceType,
+            fromRow,
+            fromColumn,
+            move,
+            capturedPiece,
+            promotionPiece
+        }) {
+            /*
+            Castling.
+            */
+
+            if (
+                move.special ===
+                    "castle"
+            ) {
+                if (move.column === 6) {
+                    return "O-O";
+                }
+
+                return "O-O-O";
+            }
+
+
+            const destination =
+                getSquareName(
+                    move.row,
+                    move.column
+                );
+
+            const isCapture =
+                Boolean(
+                    capturedPiece
+                ) ||
+                move.special ===
+                    "enPassant";
+
+
+            /*
+            Pawn notation.
+            */
+
+            if (
+                originalPieceType ===
+                    "pawn"
+            ) {
+                let notation = "";
+
+                if (isCapture) {
+                    const fromFile =
+                        getSquareName(
+                            fromRow,
+                            fromColumn
+                        )[0];
+
+                    notation +=
+                        `${fromFile}x`;
+                }
+
+                notation += destination;
+
+                if (promotionPiece) {
+                    notation +=
+                        "=" +
+                        getPieceLetter(
+                            promotionPiece
+                        );
+                }
+
+                return notation;
+            }
+
+
+            /*
+            Other pieces.
+            */
+
+            const pieceLetter =
+                getPieceLetter(
+                    originalPieceType
+                );
+
+            return (
+                pieceLetter +
+                (isCapture ? "x" : "") +
+                destination
+            );
+        }
+
+    /*
+    ============================================================
+    TEACHER BOARD DEMONSTRATION
+    ============================================================
+    */
+
+    function teacherSleep(milliseconds) {
+        return new Promise(resolve => {
+            setTimeout(resolve, milliseconds);
+        });
+    }
+
+
+    function teacherUciToCoordinates(uciMove) {
+        if (!uciMove || uciMove.length < 4) {
+            return null;
+        }
+
+        const fromFile =
+            uciMove[0].toUpperCase();
+
+        const fromRank =
+            parseInt(uciMove[1], 10);
+
+        const toFile =
+            uciMove[2].toUpperCase();
+
+        const toRank =
+            parseInt(uciMove[3], 10);
+
+        const fromColumn =
+            boardFiles.indexOf(fromFile);
+
+        const toColumn =
+            boardFiles.indexOf(toFile);
+
+        if (
+            fromColumn === -1 ||
+            toColumn === -1 ||
+            Number.isNaN(fromRank) ||
+            Number.isNaN(toRank)
+        ) {
+            return null;
+        }
+
+        return {
+            fromRow: 8 - fromRank,
+            fromColumn,
+            toRow: 8 - toRank,
+            toColumn,
+            promotion:
+                uciMove.length >= 5
+                    ? uciMove[4].toLowerCase()
+                    : null
+        };
+    }
+
+
+    function getTeacherMove(uciMove) {
+        const coordinates =
+            teacherUciToCoordinates(
+                uciMove
+            );
+
+        if (!coordinates) {
+            return null;
+        }
+
+        const {
+            fromRow,
+            fromColumn,
+            toRow,
+            toColumn
+        } = coordinates;
+
+        const piece =
+            board[fromRow][fromColumn];
+
+        if (!piece) {
+            console.warn(
+                "Teacher cannot find piece:",
+                uciMove
+            );
+
+            return null;
+        }
+
+        /*
+        Use the real legal-move generator so
+        castling and en passant still work.
+        */
+
+        const legalMoves =
+            getLegalMoves(
+                fromRow,
+                fromColumn
+            );
+
+        const move =
+            legalMoves.find(
+                candidate =>
+                    candidate.row === toRow &&
+                    candidate.column === toColumn
+            );
+
+        if (!move) {
+            console.warn(
+                "Teacher move is not legal:",
+                uciMove
+            );
+
+            return null;
+        }
+
+        return {
+            coordinates,
+            piece,
+            move
+        };
+    }
+
+
+    async function teacherDemonstrateMove(
+        uciMove,
+        explanation = ""
     ) {
-        return;
-    }
+        const teacherMove =
+            getTeacherMove(uciMove);
 
-    const svgNamespace =
-        "http://www.w3.org/2000/svg";
-
-    const svg =
-        document.createElementNS(
-            svgNamespace,
-            "svg"
-        );
-
-    svg.classList.add(
-        "move-arrow",
-        "engine-arrow"
-    );
-
-    svg.setAttribute(
-        "viewBox",
-        "0 0 800 800"
-    );
-
-    svg.setAttribute(
-        "preserveAspectRatio",
-        "none"
-    );
-
-    const startX =
-        fromColumn * 100 + 50;
-
-    const startY =
-        fromRow * 100 + 50;
-
-    const targetX =
-        toColumn * 100 + 50;
-
-    const targetY =
-        toRow * 100 + 50;
-
-    const deltaX =
-        targetX - startX;
-
-    const deltaY =
-        targetY - startY;
-
-    const distance =
-        Math.sqrt(
-            deltaX * deltaX +
-            deltaY * deltaY
-        );
-
-    if (distance === 0) {
-        return;
-    }
-
-    const unitX =
-        deltaX / distance;
-
-    const unitY =
-        deltaY / distance;
-
-    const endX =
-        targetX - unitX * 28;
-
-    const endY =
-        targetY - unitY * 28;
-
-
-    /*
-    Arrow line.
-    */
-
-    const line =
-        document.createElementNS(
-            svgNamespace,
-            "line"
-        );
-
-    line.setAttribute("x1", startX);
-    line.setAttribute("y1", startY);
-    line.setAttribute("x2", endX);
-    line.setAttribute("y2", endY);
-
-    line.classList.add(
-        "engine-arrow-line"
-    );
-
-
-    /*
-    Arrow head.
-    */
-
-    const arrowLength = 34;
-    const arrowWidth = 25;
-
-    const baseX =
-        targetX -
-        unitX * arrowLength;
-
-    const baseY =
-        targetY -
-        unitY * arrowLength;
-
-    const perpendicularX = -unitY;
-    const perpendicularY = unitX;
-
-    const leftX =
-        baseX +
-        perpendicularX * arrowWidth;
-
-    const leftY =
-        baseY +
-        perpendicularY * arrowWidth;
-
-    const rightX =
-        baseX -
-        perpendicularX * arrowWidth;
-
-    const rightY =
-        baseY -
-        perpendicularY * arrowWidth;
-
-    const arrowHead =
-        document.createElementNS(
-            svgNamespace,
-            "polygon"
-        );
-
-    arrowHead.setAttribute(
-        "points",
-        `${targetX},${targetY} ` +
-        `${leftX},${leftY} ` +
-        `${rightX},${rightY}`
-    );
-
-    arrowHead.classList.add(
-        "engine-arrow-head"
-    );
-
-    svg.appendChild(line);
-    svg.appendChild(arrowHead);
-
-    chessboard.appendChild(svg);
-}
-
-
-    function createMoveNotation({
-        originalPieceType,
-        fromRow,
-        fromColumn,
-        move,
-        capturedPiece,
-        promotionPiece
-    }) {
-        /*
-        Castling.
-        */
-
-        if (
-            move.special ===
-                "castle"
-        ) {
-            if (move.column === 6) {
-                return "O-O";
-            }
-
-            return "O-O-O";
+        if (!teacherMove) {
+            return false;
         }
 
+        const {
+            coordinates,
+            piece,
+            move
+        } = teacherMove;
 
-        const destination =
-            getSquareName(
-                move.row,
-                move.column
-            );
-
-        const isCapture =
-            Boolean(
-                capturedPiece
-            ) ||
-            move.special ===
-                "enPassant";
-
+        const {
+            fromRow,
+            fromColumn
+        } = coordinates;
 
         /*
-        Pawn notation.
+        Tell the student what the teacher
+        is about to demonstrate.
         */
 
         if (
-            originalPieceType ===
-                "pawn"
+            teacherMessage &&
+            explanation
         ) {
-            let notation = "";
+            teacherMessage.textContent =
+                explanation;
+        }
 
-            if (isCapture) {
-                const fromFile =
-                    getSquareName(
-                        fromRow,
-                        fromColumn
-                    )[0];
+        /*
+        First show the yellow teacher arrow.
+        */
 
-                notation +=
-                    `${fromFile}x`;
-            }
+        drawTeacherArrow(
+            uciMove
+        );
 
-            notation += destination;
+        await teacherSleep(900);
 
-            if (promotionPiece) {
-                notation +=
-                    "=" +
-                    getPieceLetter(
-                        promotionPiece
-                    );
-            }
 
-            return notation;
+        /*
+        Move the piece on our internal board.
+
+        This deliberately does NOT call
+        makeMove(), because a demonstration
+        should not become a student's move.
+        */
+
+        executeMoveOnBoard(
+            board,
+            fromRow,
+            fromColumn,
+            move
+        );
+
+        piece.hasMoved = true;
+
+
+        /*
+        Handle promotion from UCI notation,
+        for example e7e8q.
+        */
+
+        if (
+            piece.type === "pawn" &&
+            (
+                move.row === 0 ||
+                move.row === 7
+            )
+        ) {
+            const promotionMap = {
+                q: "queen",
+                r: "rook",
+                b: "bishop",
+                n: "knight"
+            };
+
+            piece.type =
+                promotionMap[
+                    coordinates.promotion
+                ] || "queen";
         }
 
 
         /*
-        Other pieces.
+        Store teacher move only so the normal
+        last-move arrow/rendering can show it.
         */
 
-        const pieceLetter =
-            getPieceLetter(
-                originalPieceType
-            );
+        lastMove = {
+            fromRow,
+            fromColumn,
+            toRow: move.row,
+            toColumn: move.column
+        };
 
-        return (
-            pieceLetter +
-            (isCapture ? "x" : "") +
-            destination
-        );
+
+        /*
+        The demonstrated position must alternate
+        sides so the next move in a variation
+        can be validated correctly.
+        */
+
+        currentTurn =
+            oppositeColor(currentTurn);
+
+        selectedSquare = null;
+
+        createBoard();
+
+        updateTurnDisplay();
+
+        await teacherSleep(1100);
+
+        return true;
     }
 
+
+    async function teacherDemonstrateLine(
+        variation,
+        explanations = []
+    ) {
+        if (
+            !Array.isArray(variation) ||
+            variation.length === 0
+        ) {
+            return;
+        }
+
+        for (
+            let index = 0;
+            index < variation.length;
+            index++
+        ) {
+            const uciMove =
+                variation[index];
+
+            const explanation =
+                explanations[index] ||
+                `Watch this move: ${uciMove}.`;
+
+            const successful =
+                await teacherDemonstrateMove(
+                    uciMove,
+                    explanation
+                );
+
+            if (!successful) {
+                break;
+            }
+
+            await teacherSleep(700);
+        }
+    }
 
     /*
     ============================================================
@@ -3320,338 +3838,1045 @@ function drawEngineArrow(bestMove) {
     }
 
 
-/*
-============================================================
-CUSTOM GAME MODAL
-============================================================
-*/
+    /*
+    ============================================================
+    CUSTOM GAME MODAL
+    ============================================================
+    */
 
-let gameModalResolver = null;
-
-
-function showGameModal({
-    title,
-    message,
-    confirmText = "Confirm",
-    danger = false
-}) {
-    return new Promise(resolve => {
-
-        gameModalResolver =
-            resolve;
-
-        gameModalTitle.textContent =
-            title;
-
-        gameModalMessage.textContent =
-            message;
-
-        gameModalConfirm.textContent =
-            confirmText;
+    let gameModalResolver = null;
 
 
-        /*
-        Resign can use the darker
-        danger button style.
-        */
+    function showGameModal({
+        title,
+        message,
+        confirmText = "Confirm",
+        danger = false
+    }) {
+        return new Promise(resolve => {
 
-        gameModalConfirm.classList.toggle(
-            "danger",
-            danger
-        );
+            gameModalResolver =
+                resolve;
+
+            gameModalTitle.textContent =
+                title;
+
+            gameModalMessage.textContent =
+                message;
+
+            gameModalConfirm.textContent =
+                confirmText;
 
 
-        /*
-        Open modal.
-        */
+            /*
+            Resign can use the darker
+            danger button style.
+            */
 
-        gameModal.classList.add(
+            gameModalConfirm.classList.toggle(
+                "danger",
+                danger
+            );
+
+
+            /*
+            Open modal.
+            */
+
+            gameModal.classList.add(
+                "is-open"
+            );
+
+            gameModal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+
+            /*
+            Put keyboard focus on
+            the confirmation button.
+            */
+
+            gameModalConfirm.focus();
+        });
+    }
+
+
+    function closeGameModal(result) {
+        gameModal.classList.remove(
             "is-open"
         );
 
         gameModal.setAttribute(
             "aria-hidden",
-            "false"
+            "true"
         );
 
+        if (gameModalResolver) {
+            gameModalResolver(
+                result
+            );
 
-        /*
-        Put keyboard focus on
-        the confirmation button.
-        */
-
-        gameModalConfirm.focus();
-    });
-}
-
-
-function closeGameModal(result) {
-    gameModal.classList.remove(
-        "is-open"
-    );
-
-    gameModal.setAttribute(
-        "aria-hidden",
-        "true"
-    );
-
-    if (gameModalResolver) {
-        gameModalResolver(
-            result
-        );
-
-        gameModalResolver =
-            null;
-    }
-}
-
-
-gameModalCancel.addEventListener(
-    "click",
-    function () {
-        closeGameModal(false);
-    }
-);
-
-
-gameModalConfirm.addEventListener(
-    "click",
-    function () {
-        closeGameModal(true);
-    }
-);
-
-
-gameModalBackdrop.addEventListener(
-    "click",
-    function () {
-        closeGameModal(false);
-    }
-);
-
-
-/*
-Escape closes modal.
-*/
-
-document.addEventListener(
-    "keydown",
-    function (event) {
-        if (
-            event.key === "Escape" &&
-            gameModal.classList.contains(
-                "is-open"
-            )
-        ) {
-            closeGameModal(false);
+            gameModalResolver =
+                null;
         }
     }
-);
 
 
-/*
-============================================================
-DRAW
-============================================================
-*/
-
-async function offerDraw() {
-    if (gameOver) {
-        return;
-    }
-
-    const offeringPlayer =
-        currentTurn;
-
-    const opponent =
-        oppositeColor(
-            offeringPlayer
-        );
-
-    const accepted =
-        await showGameModal({
-            title:
-                "Draw Offer",
-
-            message:
-                `${capitalize(offeringPlayer)} ` +
-                `offers a draw. ` +
-                `Does ${capitalize(opponent)} accept?`,
-
-            confirmText:
-                "Accept Draw"
-        });
-
-    if (!accepted) {
-        return;
-    }
-
-    gameOver =
-        true;
-
-    selectedSquare =
-        null;
-
-    turnDisplay.textContent =
-        "Draw by agreement";
-
-    createBoard();
-}
+    gameModalCancel.addEventListener(
+        "click",
+        function () {
+            closeGameModal(false);
+        }
+    );
 
 
-/*
-============================================================
-RESIGN
-============================================================
-*/
-
-async function resignGame() {
-    if (gameOver) {
-        return;
-    }
-
-    const resigningPlayer =
-        currentTurn;
-
-    const winner =
-        oppositeColor(
-            resigningPlayer
-        );
-
-    const confirmed =
-        await showGameModal({
-            title:
-                "Resign Game",
-
-            message:
-                `${capitalize(resigningPlayer)}, ` +
-                `are you sure you want to resign?`,
-
-            confirmText:
-                "Resign",
-
-            danger:
-                true
-        });
-
-    if (!confirmed) {
-        return;
-    }
-
-    gameOver =
-        true;
-
-    selectedSquare =
-        null;
-
-    turnDisplay.textContent =
-        `${capitalize(winner)} wins — ` +
-        `${capitalize(resigningPlayer)} resigned`;
-
-    createBoard();
-}
+    gameModalConfirm.addEventListener(
+        "click",
+        function () {
+            closeGameModal(true);
+        }
+    );
 
 
+    gameModalBackdrop.addEventListener(
+        "click",
+        function () {
+            closeGameModal(false);
+        }
+    );
 
-/*
-============================================================
-NEW GAME
-============================================================
-*/
 
-async function startNewGame() {
     /*
-    Ask before deleting an active game.
+    Escape closes modal.
     */
 
-    if (
-        !gameOver &&
-        moveHistory.length > 0
-    ) {
+    document.addEventListener(
+        "keydown",
+        function (event) {
+            if (
+                event.key === "Escape" &&
+                gameModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+                closeGameModal(false);
+            }
+        }
+    );
+
+
+    /*
+    ============================================================
+    DRAW
+    ============================================================
+    */
+
+    async function offerDraw() {
+        if (gameOver) {
+            return;
+        }
+
+        const offeringPlayer =
+            currentTurn;
+
+        const opponent =
+            oppositeColor(
+                offeringPlayer
+            );
+
+        const accepted =
+            await showGameModal({
+                title:
+                    "Draw Offer",
+
+                message:
+                    `${capitalize(offeringPlayer)} ` +
+                    `offers a draw. ` +
+                    `Does ${capitalize(opponent)} accept?`,
+
+                confirmText:
+                    "Accept Draw"
+            });
+
+        if (!accepted) {
+            return;
+        }
+
+        gameOver =
+            true;
+
+        selectedSquare =
+            null;
+
+        turnDisplay.textContent =
+            "Draw by agreement";
+
+        createBoard();
+    }
+
+
+    /*
+    ============================================================
+    RESIGN
+    ============================================================
+    */
+
+    async function resignGame() {
+        if (gameOver) {
+            return;
+        }
+
+        const resigningPlayer =
+            currentTurn;
+
+        const winner =
+            oppositeColor(
+                resigningPlayer
+            );
+
         const confirmed =
             await showGameModal({
                 title:
-                    "New Game",
+                    "Resign Game",
 
                 message:
-                    "Start a new game? " +
-                    "The current game will be lost.",
+                    `${capitalize(resigningPlayer)}, ` +
+                    `are you sure you want to resign?`,
 
                 confirmText:
-                    "Start New Game"
+                    "Resign",
+
+                danger:
+                    true
             });
 
         if (!confirmed) {
             return;
         }
+
+        gameOver =
+            true;
+
+        selectedSquare =
+            null;
+
+        turnDisplay.textContent =
+            `${capitalize(winner)} wins — ` +
+            `${capitalize(resigningPlayer)} resigned`;
+
+        createBoard();
+    }
+
+
+
+    /*
+    ============================================================
+    NEW GAME
+    ============================================================
+    */
+
+    async function startNewGame() {
+        /*
+        Ask before deleting an active game.
+        */
+
+        if (
+            !gameOver &&
+            moveHistory.length > 0
+        ) {
+            const confirmed =
+                await showGameModal({
+                    title:
+                        "New Game",
+
+                    message:
+                        "Start a new game? " +
+                        "The current game will be lost.",
+
+                    confirmText:
+                        "Start New Game"
+                });
+
+            if (!confirmed) {
+                return;
+            }
+        }
+
+
+        /*
+        Reset board.
+        */
+
+        board =
+            createInitialBoard();
+
+
+        /*
+        Reset game state.
+        */
+
+        currentTurn =
+            "white";
+
+        selectedSquare =
+            null;
+
+        enPassantTarget =
+            null;
+
+        halfMoveClock =
+            0;
+
+        gameOver =
+            false;
+
+        lastMove =
+            null;
+
+
+        /*
+        Reset captured pieces.
+        */
+
+        capturedWhitePieces =
+            [];
+
+        capturedBlackPieces =
+            [];
+
+
+        /*
+        Reset move history.
+        */
+
+        moveHistory =
+            [];
+
+        fullMoveNumber =
+            1;
+
+
+        /*
+        Reset repetition history.
+        */
+
+        positionHistory.clear();
+
+        recordPosition();
+
+
+        /*
+        Refresh interface.
+        */
+
+        updateTurnDisplay();
+
+        renderCapturedPieces();
+
+        renderMoveHistory();
+
+        createBoard();
     }
 
 
     /*
-    Reset board.
+    ============================================================
+    GAME BUTTON EVENTS
+    ============================================================
     */
 
-    board =
-        createInitialBoard();
+    drawButton.addEventListener(
+        "click",
+        offerDraw
+    );
+
+    resignButton.addEventListener(
+        "click",
+        resignGame
+    );
+
+    newGameButton.addEventListener(
+        "click",
+        startNewGame
+    );
 
 
     /*
-    Reset game state.
+    ============================================================
+    STOCKFISH ENGINE
+    ============================================================
     */
 
-    currentTurn =
-        "white";
+    function boardToFEN() {
+        const pieceLetters = {
+            king: "k",
+            queen: "q",
+            rook: "r",
+            bishop: "b",
+            knight: "n",
+            pawn: "p"
+        };
 
-    selectedSquare =
-        null;
+        const fenRows = [];
 
-    enPassantTarget =
-        null;
+        for (let row = 0; row < 8; row++) {
+            let fenRow = "";
+            let emptySquares = 0;
 
-    halfMoveClock =
-        0;
+            for (let column = 0; column < 8; column++) {
+                const piece = board[row][column];
 
-    gameOver =
-        false;
+                if (!piece) {
+                    emptySquares++;
+                    continue;
+                }
 
-    lastMove =
-        null;
+                if (emptySquares > 0) {
+                    fenRow += emptySquares;
+                    emptySquares = 0;
+                }
+
+                let letter = pieceLetters[piece.type];
+
+                if (piece.color === "white") {
+                    letter = letter.toUpperCase();
+                }
+
+                fenRow += letter;
+            }
+
+            if (emptySquares > 0) {
+                fenRow += emptySquares;
+            }
+
+            fenRows.push(fenRow);
+        }
+
+        const activeColor =
+            currentTurn === "white"
+                ? "w"
+                : "b";
+
+        const castling =
+            getFENCastlingRights();
+
+        const enPassant =
+            getFENEnPassantSquare();
+
+        return (
+            fenRows.join("/") +
+            " " +
+            activeColor +
+            " " +
+            castling +
+            " " +
+            enPassant +
+            " " +
+            halfMoveClock +
+            " " +
+            fullMoveNumber
+        );
+    }
+
+
+    function getFENCastlingRights() {
+        let rights = "";
+
+        const whiteKing =
+            board[7][4];
+
+        const blackKing =
+            board[0][4];
+
+
+        /*
+        White castling.
+        */
+
+        if (
+            whiteKing &&
+            whiteKing.type === "king" &&
+            whiteKing.color === "white" &&
+            !whiteKing.hasMoved
+        ) {
+            const rookH1 =
+                board[7][7];
+
+            const rookA1 =
+                board[7][0];
+
+            if (
+                rookH1 &&
+                rookH1.type === "rook" &&
+                rookH1.color === "white" &&
+                !rookH1.hasMoved
+            ) {
+                rights += "K";
+            }
+
+            if (
+                rookA1 &&
+                rookA1.type === "rook" &&
+                rookA1.color === "white" &&
+                !rookA1.hasMoved
+            ) {
+                rights += "Q";
+            }
+        }
+
+
+        /*
+        Black castling.
+        */
+
+        if (
+            blackKing &&
+            blackKing.type === "king" &&
+            blackKing.color === "black" &&
+            !blackKing.hasMoved
+        ) {
+            const rookH8 =
+                board[0][7];
+
+            const rookA8 =
+                board[0][0];
+
+            if (
+                rookH8 &&
+                rookH8.type === "rook" &&
+                rookH8.color === "black" &&
+                !rookH8.hasMoved
+            ) {
+                rights += "k";
+            }
+
+            if (
+                rookA8 &&
+                rookA8.type === "rook" &&
+                rookA8.color === "black" &&
+                !rookA8.hasMoved
+            ) {
+                rights += "q";
+            }
+        }
+
+        return rights || "-";
+    }
+
+
+    function getFENEnPassantSquare() {
+        if (!enPassantTarget) {
+            return "-";
+        }
+
+        return getSquareName(
+            enPassantTarget.row,
+            enPassantTarget.column
+        );
+    }
 
 
     /*
-    Reset captured pieces.
+    ============================================================
+    MOVE QUALITY
+    ============================================================
     */
 
-    capturedWhitePieces =
-        [];
+    function classifyMove(
+        previousEvaluation,
+        newEvaluation,
+        playerColor
+    ) {
+        if (
+            previousEvaluation === null ||
+            newEvaluation === null
+        ) {
+            return null;
+        }
 
-    capturedBlackPieces =
-        [];
+        let evaluationLoss;
+
+        /*
+        Evaluations are always from
+        White's point of view.
+
+        Positive = White advantage.
+        Negative = Black advantage.
+        */
+
+        if (playerColor === "white") {
+            evaluationLoss =
+                previousEvaluation -
+                newEvaluation;
+        } else {
+            evaluationLoss =
+                newEvaluation -
+                previousEvaluation;
+        }
+
+        /*
+        Sometimes the player's move
+        improves the evaluation.
+
+        In that case there is no loss.
+        */
+
+        evaluationLoss =
+            Math.max(
+                0,
+                evaluationLoss
+            );
+
+        console.log(
+            "Evaluation loss:",
+            evaluationLoss
+        );
+
+
+        /*
+        Our own simple classification
+        thresholds.
+
+        These are not Chess.com ratings.
+        */
+
+        if (evaluationLoss <= 0.10) {
+            return "Best";
+        }
+
+        if (evaluationLoss <= 0.25) {
+            return "Excellent";
+        }
+
+        if (evaluationLoss <= 0.50) {
+            return "Good";
+        }
+
+        if (evaluationLoss <= 1.00) {
+            return "Inaccuracy";
+        }
+
+        if (evaluationLoss <= 2.00) {
+            return "Mistake";
+        }
+
+        return "Blunder";
+    }
 
 
     /*
-    Reset move history.
+    ============================================================
+    CSRF TOKEN
+    ============================================================
     */
 
-    moveHistory =
-        [];
+    function getCSRFToken() {
+        const cookie =
+            document.cookie
+                .split("; ")
+                .find(
+                    row =>
+                        row.startsWith(
+                            "csrftoken="
+                        )
+                );
 
-    fullMoveNumber =
-        1;
+        if (!cookie) {
+            return "";
+        }
+
+        return decodeURIComponent(
+            cookie.split("=")[1]
+        );
+    }
+
+    /*
+    ============================================================
+    CHESS TEACHER MESSAGE
+    ============================================================
+    */
+
+    function updateTeacherMessage(
+        data,
+        moveQuality = null
+    ) {
+        if (!teacherMessage) {
+            return;
+        }
+
+        /*
+        Initial analysis before the player moves.
+        */
+
+        if (!moveQuality) {
+            if (data.best_move) {
+                teacherMessage.textContent =
+                    `I am ready. Look carefully at the position. ` +
+                    `One strong move is ${data.best_move}.`;
+            }
+
+            return;
+        }
+
+
+        /*
+        Explain the quality of the player's move.
+        */
+
+        const messages = {
+            Best:
+                "Excellent! That was one of the strongest moves in the position.",
+
+            Excellent:
+                "Excellent move! You kept your position very strong.",
+
+            Good:
+                "Good move. Your position remains solid, but let's see whether there was something even stronger.",
+
+            Inaccuracy:
+                "Be careful. That move was slightly inaccurate. Let's look at the stronger continuation.",
+
+            Mistake:
+                "That was a mistake. Before moving, check your opponent's threats and tactical possibilities.",
+
+            Blunder:
+                "Watch out! That move gives your opponent a significant advantage. Let's examine what went wrong."
+        };
+
+
+        let message =
+            messages[moveQuality] ||
+            "Let's analyse this position.";
+
+
+        /*
+        Add Stockfish's recommended continuation.
+        */
+
+        if (data.best_move) {
+            message +=
+                ` From this position, I recommend looking at ${data.best_move}.`;
+        }
+
+
+        /*
+        Mate warning.
+        */
+
+        if (
+            data.mate !== null &&
+            data.mate !== undefined
+        ) {
+            const mateNumber =
+                Math.abs(data.mate);
+
+            message +=
+                ` There is a forced mate in ${mateNumber}.`;
+        }
+
+
+        teacherMessage.textContent =
+            message;
+    }
+
+    /*
+    ============================================================
+    UPDATE ENGINE ANALYSIS PANEL
+    ============================================================
+    */
+
+    function updateEnginePanel(
+        data,
+        moveQuality = null
+    ) {
+        /*
+        Evaluation
+        */
+
+        if (
+            data.mate !== null &&
+            data.mate !== undefined
+        ) {
+            const mateNumber =
+                Math.abs(data.mate);
+
+            if (data.mate > 0) {
+                engineEvaluation.textContent =
+                    `White mate in ${mateNumber}`;
+            } else {
+                engineEvaluation.textContent =
+                    `Black mate in ${mateNumber}`;
+            }
+
+        } else if (
+            data.evaluation !== null &&
+            data.evaluation !== undefined
+        ) {
+            const evaluation =
+                Number(data.evaluation);
+
+            engineEvaluation.textContent =
+                evaluation > 0
+                    ? `+${evaluation.toFixed(2)}`
+                    : evaluation.toFixed(2);
+
+        } else {
+            engineEvaluation.textContent = "—";
+        }
+
+
+        /*
+        Best move
+        */
+
+        engineBestMove.textContent =
+            data.best_move || "—";
+
+
+        /*
+        Engine depth
+        */
+
+        engineDepth.textContent =
+            data.depth ?? "—";
+
+
+        /*
+        Move quality
+        */
+
+        engineMoveQuality.className =
+            "engine-value";
+
+        if (!moveQuality) {
+            engineMoveQuality.textContent = "—";
+            return;
+        }
+
+        engineMoveQuality.textContent =
+            moveQuality;
+
+
+        /*
+        Add quality colour
+        */
+
+        const qualityClass =
+            "quality-" +
+            moveQuality
+                .toLowerCase()
+                .replace(/\s+/g, "-");
+
+        engineMoveQuality.classList.add(
+            qualityClass
+        );
+    }
+
 
 
     /*
-    Reset repetition history.
+    ============================================================
+    ANALYSE POSITION WITH STOCKFISH
+    ============================================================
     */
 
-    positionHistory.clear();
+    async function analyseWithStockfish(
+        classifyPlayerMove = true
+    ) {
+        /*
+        Do not request another analysis
+        after the game has finished,
+        except for initial analysis.
+        */
+
+        if (
+            gameOver &&
+            classifyPlayerMove
+        ) {
+            return;
+        }
+
+        const fen =
+            boardToFEN();
+
+        console.log(
+            "Sending position to Stockfish:",
+            fen
+        );
+
+        try {
+            const response =
+                await fetch(
+                    "/analyse/",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            "X-CSRFToken":
+                                getCSRFToken()
+                        },
+
+                        body:
+                            JSON.stringify({
+                                fen: fen
+                            })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+
+            /*
+            Handle backend errors.
+            */
+
+            if (!response.ok) {
+                console.error(
+                    "Stockfish error:",
+                    data
+                );
+
+                return;
+            }
+
+
+            /*
+            Show engine information
+            in browser console.
+            */
+
+            console.log(
+                "Stockfish result:",
+                data
+            );
+
+            console.log(
+                "Best move:",
+                data.best_move
+            );
+
+            if (data.mate !== null) {
+                console.log(
+                    "Mate:",
+                    data.mate
+                );
+            } else {
+                console.log(
+                    "Evaluation:",
+                    data.evaluation
+                );
+            }
+
+
+            /*
+            If this analysis happened
+            after a player's move,
+            determine who made that move.
+
+            currentTurn has already changed,
+            so the player who moved is the
+            opposite color.
+            */
+            let moveQuality = null;
+
+            if (classifyPlayerMove) {
+                const playerColor =
+                    currentTurn === "white"
+                        ? "black"
+                        : "white";
+
+                if (
+                    previousEngineEvaluation !== null &&
+                    data.evaluation !== null
+                ) {
+                    moveQuality =
+                        classifyMove(
+                            previousEngineEvaluation,
+                            data.evaluation,
+                            playerColor
+                        );
+
+                    console.log(
+                        "Player:",
+                        playerColor
+                    );
+
+                    console.log(
+                        "Move quality:",
+                        moveQuality
+                    );
+                }
+            }
+
+
+            /*
+            Update visible Engine Analysis panel.
+            */
+
+            updateEnginePanel(
+                data,
+                moveQuality
+            );
+
+            updateTeacherMessage(
+                data,
+                moveQuality
+            );
+
+
+            /*
+            Store current evaluation for
+            comparison after the next move.
+            */
+
+            previousEngineEvaluation =
+                data.evaluation;
+
+
+            /*
+            Show Stockfish recommended move.
+            */
+
+            drawEngineArrow(
+                data.best_move
+            );
+
+
+            /*
+            Store current evaluation.
+
+            This becomes the "before"
+            evaluation when the next
+            move is played.
+            */
+
+            if (data.evaluation !== null) {
+                previousEngineEvaluation =
+                    data.evaluation;
+            }
+
+
+        } catch (error) {
+            console.error(
+                "Could not connect to Stockfish:",
+                error
+            );
+        }
+    }
+
+    /*
+    ============================================================
+    START GAME
+    ============================================================
+    */
 
     recordPosition();
-
-
-    /*
-    Refresh interface.
-    */
 
     updateTurnDisplay();
 
@@ -3660,736 +4885,24 @@ async function startNewGame() {
     renderMoveHistory();
 
     createBoard();
-}
 
 
-/*
-============================================================
-GAME BUTTON EVENTS
-============================================================
-*/
+    /*
+    Analyse the initial chess position.
 
-drawButton.addEventListener(
-    "click",
-    offerDraw
-);
+    false means that this is only the
+    starting evaluation.
 
-resignButton.addEventListener(
-    "click",
-    resignGame
-);
+    No player move should be classified.
+    */
 
-newGameButton.addEventListener(
-    "click",
-    startNewGame
-);
+    analyseWithStockfish(false);
 
-
-/*
-============================================================
-STOCKFISH ENGINE
-============================================================
-*/
-
-function boardToFEN() {
-    const pieceLetters = {
-        king: "k",
-        queen: "q",
-        rook: "r",
-        bishop: "b",
-        knight: "n",
-        pawn: "p"
+    window.teacherTest = async function () {
+        await teacherDemonstrateMove(
+            "e2e4",
+            "White moves the king pawn to e4 to fight for the centre."
+        );
     };
-
-    const fenRows = [];
-
-    for (let row = 0; row < 8; row++) {
-        let fenRow = "";
-        let emptySquares = 0;
-
-        for (let column = 0; column < 8; column++) {
-            const piece = board[row][column];
-
-            if (!piece) {
-                emptySquares++;
-                continue;
-            }
-
-            if (emptySquares > 0) {
-                fenRow += emptySquares;
-                emptySquares = 0;
-            }
-
-            let letter = pieceLetters[piece.type];
-
-            if (piece.color === "white") {
-                letter = letter.toUpperCase();
-            }
-
-            fenRow += letter;
-        }
-
-        if (emptySquares > 0) {
-            fenRow += emptySquares;
-        }
-
-        fenRows.push(fenRow);
-    }
-
-    const activeColor =
-        currentTurn === "white"
-            ? "w"
-            : "b";
-
-    const castling =
-        getFENCastlingRights();
-
-    const enPassant =
-        getFENEnPassantSquare();
-
-    return (
-        fenRows.join("/") +
-        " " +
-        activeColor +
-        " " +
-        castling +
-        " " +
-        enPassant +
-        " " +
-        halfMoveClock +
-        " " +
-        fullMoveNumber
-    );
-}
-
-
-function getFENCastlingRights() {
-    let rights = "";
-
-    const whiteKing =
-        board[7][4];
-
-    const blackKing =
-        board[0][4];
-
-
-    /*
-    White castling.
-    */
-
-    if (
-        whiteKing &&
-        whiteKing.type === "king" &&
-        whiteKing.color === "white" &&
-        !whiteKing.hasMoved
-    ) {
-        const rookH1 =
-            board[7][7];
-
-        const rookA1 =
-            board[7][0];
-
-        if (
-            rookH1 &&
-            rookH1.type === "rook" &&
-            rookH1.color === "white" &&
-            !rookH1.hasMoved
-        ) {
-            rights += "K";
-        }
-
-        if (
-            rookA1 &&
-            rookA1.type === "rook" &&
-            rookA1.color === "white" &&
-            !rookA1.hasMoved
-        ) {
-            rights += "Q";
-        }
-    }
-
-
-    /*
-    Black castling.
-    */
-
-    if (
-        blackKing &&
-        blackKing.type === "king" &&
-        blackKing.color === "black" &&
-        !blackKing.hasMoved
-    ) {
-        const rookH8 =
-            board[0][7];
-
-        const rookA8 =
-            board[0][0];
-
-        if (
-            rookH8 &&
-            rookH8.type === "rook" &&
-            rookH8.color === "black" &&
-            !rookH8.hasMoved
-        ) {
-            rights += "k";
-        }
-
-        if (
-            rookA8 &&
-            rookA8.type === "rook" &&
-            rookA8.color === "black" &&
-            !rookA8.hasMoved
-        ) {
-            rights += "q";
-        }
-    }
-
-    return rights || "-";
-}
-
-
-function getFENEnPassantSquare() {
-    if (!enPassantTarget) {
-        return "-";
-    }
-
-    return getSquareName(
-        enPassantTarget.row,
-        enPassantTarget.column
-    );
-}
-
-
-/*
-============================================================
-MOVE QUALITY
-============================================================
-*/
-
-function classifyMove(
-    previousEvaluation,
-    newEvaluation,
-    playerColor
-) {
-    if (
-        previousEvaluation === null ||
-        newEvaluation === null
-    ) {
-        return null;
-    }
-
-    let evaluationLoss;
-
-    /*
-    Evaluations are always from
-    White's point of view.
-
-    Positive = White advantage.
-    Negative = Black advantage.
-    */
-
-    if (playerColor === "white") {
-        evaluationLoss =
-            previousEvaluation -
-            newEvaluation;
-    } else {
-        evaluationLoss =
-            newEvaluation -
-            previousEvaluation;
-    }
-
-    /*
-    Sometimes the player's move
-    improves the evaluation.
-
-    In that case there is no loss.
-    */
-
-    evaluationLoss =
-        Math.max(
-            0,
-            evaluationLoss
-        );
-
-    console.log(
-        "Evaluation loss:",
-        evaluationLoss
-    );
-
-
-    /*
-    Our own simple classification
-    thresholds.
-
-    These are not Chess.com ratings.
-    */
-
-    if (evaluationLoss <= 0.10) {
-        return "Best";
-    }
-
-    if (evaluationLoss <= 0.25) {
-        return "Excellent";
-    }
-
-    if (evaluationLoss <= 0.50) {
-        return "Good";
-    }
-
-    if (evaluationLoss <= 1.00) {
-        return "Inaccuracy";
-    }
-
-    if (evaluationLoss <= 2.00) {
-        return "Mistake";
-    }
-
-    return "Blunder";
-}
-
-
-/*
-============================================================
-CSRF TOKEN
-============================================================
-*/
-
-function getCSRFToken() {
-    const cookie =
-        document.cookie
-            .split("; ")
-            .find(
-                row =>
-                    row.startsWith(
-                        "csrftoken="
-                    )
-            );
-
-    if (!cookie) {
-        return "";
-    }
-
-    return decodeURIComponent(
-        cookie.split("=")[1]
-    );
-}
-
-/*
-============================================================
-CHESS TEACHER MESSAGE
-============================================================
-*/
-
-function updateTeacherMessage(
-    data,
-    moveQuality = null
-) {
-    if (!teacherMessage) {
-        return;
-    }
-
-    /*
-    Initial analysis before the player moves.
-    */
-
-    if (!moveQuality) {
-        if (data.best_move) {
-            teacherMessage.textContent =
-                `I am ready. Look carefully at the position. ` +
-                `One strong move is ${data.best_move}.`;
-        }
-
-        return;
-    }
-
-
-    /*
-    Explain the quality of the player's move.
-    */
-
-    const messages = {
-        Best:
-            "Excellent! That was one of the strongest moves in the position.",
-
-        Excellent:
-            "Excellent move! You kept your position very strong.",
-
-        Good:
-            "Good move. Your position remains solid, but let's see whether there was something even stronger.",
-
-        Inaccuracy:
-            "Be careful. That move was slightly inaccurate. Let's look at the stronger continuation.",
-
-        Mistake:
-            "That was a mistake. Before moving, check your opponent's threats and tactical possibilities.",
-
-        Blunder:
-            "Watch out! That move gives your opponent a significant advantage. Let's examine what went wrong."
-    };
-
-
-    let message =
-        messages[moveQuality] ||
-        "Let's analyse this position.";
-
-
-    /*
-    Add Stockfish's recommended continuation.
-    */
-
-    if (data.best_move) {
-        message +=
-            ` From this position, I recommend looking at ${data.best_move}.`;
-    }
-
-
-    /*
-    Mate warning.
-    */
-
-    if (
-        data.mate !== null &&
-        data.mate !== undefined
-    ) {
-        const mateNumber =
-            Math.abs(data.mate);
-
-        message +=
-            ` There is a forced mate in ${mateNumber}.`;
-    }
-
-
-    teacherMessage.textContent =
-        message;
-}
-
-/*
-============================================================
-UPDATE ENGINE ANALYSIS PANEL
-============================================================
-*/
-
-function updateEnginePanel(
-    data,
-    moveQuality = null
-) {
-    /*
-    Evaluation
-    */
-
-    if (
-        data.mate !== null &&
-        data.mate !== undefined
-    ) {
-        const mateNumber =
-            Math.abs(data.mate);
-
-        if (data.mate > 0) {
-            engineEvaluation.textContent =
-                `White mate in ${mateNumber}`;
-        } else {
-            engineEvaluation.textContent =
-                `Black mate in ${mateNumber}`;
-        }
-
-    } else if (
-        data.evaluation !== null &&
-        data.evaluation !== undefined
-    ) {
-        const evaluation =
-            Number(data.evaluation);
-
-        engineEvaluation.textContent =
-            evaluation > 0
-                ? `+${evaluation.toFixed(2)}`
-                : evaluation.toFixed(2);
-
-    } else {
-        engineEvaluation.textContent = "—";
-    }
-
-
-    /*
-    Best move
-    */
-
-    engineBestMove.textContent =
-        data.best_move || "—";
-
-
-    /*
-    Engine depth
-    */
-
-    engineDepth.textContent =
-        data.depth ?? "—";
-
-
-    /*
-    Move quality
-    */
-
-    engineMoveQuality.className =
-        "engine-value";
-
-    if (!moveQuality) {
-        engineMoveQuality.textContent = "—";
-        return;
-    }
-
-    engineMoveQuality.textContent =
-        moveQuality;
-
-
-    /*
-    Add quality colour
-    */
-
-    const qualityClass =
-        "quality-" +
-        moveQuality
-            .toLowerCase()
-            .replace(/\s+/g, "-");
-
-    engineMoveQuality.classList.add(
-        qualityClass
-    );
-}
-
-
-
-/*
-============================================================
-ANALYSE POSITION WITH STOCKFISH
-============================================================
-*/
-
-async function analyseWithStockfish(
-    classifyPlayerMove = true
-) {
-    /*
-    Do not request another analysis
-    after the game has finished,
-    except for initial analysis.
-    */
-
-    if (
-        gameOver &&
-        classifyPlayerMove
-    ) {
-        return;
-    }
-
-    const fen =
-        boardToFEN();
-
-    console.log(
-        "Sending position to Stockfish:",
-        fen
-    );
-
-    try {
-        const response =
-            await fetch(
-                "/analyse/",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        "X-CSRFToken":
-                            getCSRFToken()
-                    },
-
-                    body:
-                        JSON.stringify({
-                            fen: fen
-                        })
-                }
-            );
-
-        const data =
-            await response.json();
-
-
-        /*
-        Handle backend errors.
-        */
-
-        if (!response.ok) {
-            console.error(
-                "Stockfish error:",
-                data
-            );
-
-            return;
-        }
-
-
-        /*
-        Show engine information
-        in browser console.
-        */
-
-        console.log(
-            "Stockfish result:",
-            data
-        );
-
-        console.log(
-            "Best move:",
-            data.best_move
-        );
-
-        if (data.mate !== null) {
-            console.log(
-                "Mate:",
-                data.mate
-            );
-        } else {
-            console.log(
-                "Evaluation:",
-                data.evaluation
-            );
-        }
-
-
-        /*
-        If this analysis happened
-        after a player's move,
-        determine who made that move.
-
-        currentTurn has already changed,
-        so the player who moved is the
-        opposite color.
-        */
-        let moveQuality = null;
-
-        if (classifyPlayerMove) {
-            const playerColor =
-                currentTurn === "white"
-                    ? "black"
-                    : "white";
-
-            if (
-                previousEngineEvaluation !== null &&
-                data.evaluation !== null
-            ) {
-                moveQuality =
-                    classifyMove(
-                        previousEngineEvaluation,
-                        data.evaluation,
-                        playerColor
-                    );
-
-                console.log(
-                    "Player:",
-                    playerColor
-                );
-
-                console.log(
-                    "Move quality:",
-                    moveQuality
-                );
-            }
-        }
-
-
-        /*
-        Update visible Engine Analysis panel.
-        */
-
-        updateEnginePanel(
-            data,
-            moveQuality
-        );
-
-        updateTeacherMessage(
-            data,
-            moveQuality
-        );
-
-
-        /*
-        Store current evaluation for
-        comparison after the next move.
-        */
-
-        previousEngineEvaluation =
-            data.evaluation;
-
-
-        /*
-        Show Stockfish recommended move.
-        */
-
-        drawEngineArrow(
-            data.best_move
-        );
-
-
-        /*
-        Store current evaluation.
-
-        This becomes the "before"
-        evaluation when the next
-        move is played.
-        */
-
-        if (data.evaluation !== null) {
-            previousEngineEvaluation =
-                data.evaluation;
-        }
-
-
-        /*
-        Draw Stockfish's recommended
-        move for the player whose turn
-        it is now.
-        */
-
-        if (data.best_move) {
-            drawEngineArrow(
-                data.best_move
-            );
-        }
-
-    } catch (error) {
-        console.error(
-            "Could not connect to Stockfish:",
-            error
-        );
-    }
-}
-
-/*
-============================================================
-START GAME
-============================================================
-*/
-
-recordPosition();
-
-updateTurnDisplay();
-
-renderCapturedPieces();
-
-renderMoveHistory();
-
-createBoard();
-
-
-/*
-Analyse the initial chess position.
-
-false means that this is only the
-starting evaluation.
-
-No player move should be classified.
-*/
-
-analyseWithStockfish(false);
 
 });

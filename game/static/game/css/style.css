@@ -906,6 +906,53 @@ body {
 
 
 /* =========================================================
+   TEACHER RECOMMENDATION ARROW
+   ========================================================= */
+
+.teacher-arrow {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    pointer-events: none;
+
+    z-index: 9;
+
+    overflow: visible;
+}
+
+.teacher-arrow-line {
+    stroke: rgba(255, 215, 80, 0.92);
+
+    stroke-width: 12;
+
+    stroke-linecap: round;
+
+    pointer-events: none;
+
+    filter:
+        drop-shadow(
+            0 2px 3px
+            rgba(0, 0, 0, 0.55)
+        );
+}
+
+.teacher-arrow-head {
+    fill: rgba(255, 215, 80, 0.92);
+
+    pointer-events: none;
+
+    filter:
+        drop-shadow(
+            0 2px 3px
+            rgba(0, 0, 0, 0.55)
+        );
+}
+
+
+/* =========================================================
    28. RIGHT PANEL - MOVE HISTORY
    ========================================================= */
 
