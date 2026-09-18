@@ -3095,10 +3095,30 @@ document.addEventListener("DOMContentLoaded", function () {
     function getTeacherDefenseReasons(context) {
         const reasons = [];
 
-        /*
-        Defended pieces and important
-        protected squares will go here.
-        */
+        const {
+            defendedPieces = []
+        } = context;
+
+        if (defendedPieces.length === 0) {
+            return reasons;
+        }
+
+        const defendedDescriptions =
+            defendedPieces.map(target =>
+                `${target.name} on ${target.square}`
+            );
+
+        if (defendedDescriptions.length === 1) {
+            reasons.push(
+                `defends the ` +
+                `${defendedDescriptions[0]}`
+            );
+        } else {
+            reasons.push(
+                `defends the ` +
+                `${defendedDescriptions.join(" and ")}`
+            );
+        }
 
         return reasons;
     }
@@ -3246,7 +3266,7 @@ document.addEventListener("DOMContentLoaded", function () {
         */
 
         const attackedPieces = [];
-
+        const defendedPieces = [];
         const controlledEmptySquares = [];
 
         controlledSquares.forEach(
@@ -3291,7 +3311,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         square:
                             controlledSquare
                     });
+
+                    return;
                 }
+
+                defendedPieces.push({
+                    name:
+                        getTeacherPieceName(
+                            controlledPiece
+                        ),
+                    square:
+                        controlledSquare
+                });
             }
         );
 
@@ -3313,6 +3344,7 @@ document.addEventListener("DOMContentLoaded", function () {
             destination,
             uciMove,
             attackedPieces,
+            defendedPieces,
             controlledEmptySquares
         };
 
