@@ -1179,27 +1179,812 @@ function getTeacherPawnReasons(context) {
 
 /*
 ============================================================
-TACTICS
+TACTICAL IDEAS
 ============================================================
 */
 
 function getTeacherTacticalReasons(context) {
     const reasons = [];
 
+    const {
+        piece,
+        target,
+        toRow,
+        toColumn,
+        temporaryBoard,
+        attackedPieces = [],
+        defendedPieces = [],
+        api
+    } = context;
+
+    if (
+        !piece ||
+        !temporaryBoard
+    ) {
+        return reasons;
+    }
+
+    const color =
+        piece.color;
+
+    const enemyColor =
+        color === "white"
+            ? "black"
+            : "white";
+
+    const pieceValues = {
+        pawn: 1,
+        knight: 3,
+        bishop: 3,
+        rook: 5,
+        queen: 9,
+        king: 100
+    };
+
+    const pieceNames = {
+        pawn: "pawn",
+        knight: "knight",
+        bishop: "bishop",
+        rook: "rook",
+        queen: "queen",
+        king: "king"
+    };
+
+
     /*
-    Check
-    checkmate
-    forks
-    pins
-    skewers
-    discovered attacks
-    double attacks
-    will be added here.
+    ========================================================
+    HELPER — FIND KING
+    ========================================================
     */
 
-    return reasons;
-}
+    function findKing(
+        boardState,
+        kingColor
+    ) {
+        for (
+            let row = 0;
+            row < 8;
+            row++
+        ) {
+            for (
+                let column = 0;
+                column < 8;
+                column++
+            ) {
+                const boardPiece =
+                    boardState[row][column];
 
+                if (
+                    boardPiece &&
+                    boardPiece.type === "king" &&
+                    boardPiece.color === kingColor
+                ) {
+                    return {
+                        row,
+                        column
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+    /*
+    ========================================================
+    HELPER — GET CONTROLLED SQUARES
+    ========================================================
+
+    getTeacherControlledSquares uses the board stored
+    inside chess.js, so temporarily switch it to the
+    post-move position.
+    */
+
+    function getControlledSquares(
+        row,
+        column
+    ) {
+        const originalBoard =
+            api.getBoard();
+
+        try {
+            api.setBoard(
+                temporaryBoard
+            );
+
+            return (
+                api.getTeacherControlledSquares(
+                    row,
+                    column
+                ) || []
+            );
+        } finally {
+            api.setBoard(
+                originalBoard
+            );
+        }
+    }
+
+
+    /*
+    ========================================================
+    HELPER — PIECE AT SQUARE
+    ========================================================
+    */
+
+    function getPieceAt(square) {
+        if (!square) {
+            return null;
+        }
+
+        return temporaryBoard[
+            square.row
+        ][
+            square.column
+        ];
+    }
+
+
+    /*
+    ========================================================
+    HELPER — SQUARE NAME
+    ========================================================
+    */
+
+    function squareName(
+        row,
+        column
+    ) {
+        if (
+            api.getSquareName
+        ) {
+            return api.getSquareName(
+                row,
+                column
+            );
+        }
+
+        const files =
+            [
+                "a", "b", "c", "d",
+                "e", "f", "g", "h"
+            ];
+
+        return (
+            files[column] +
+            (8 - row)
+        );
+    }
+
+
+    /*
+    ========================================================
+    1. CHECK
+    ========================================================
+    */
+
+    const enemyKing =
+        findKing(
+            temporaryBoard,
+            enemyColor
+        );
+
+    const controlledSquares =
+        getControlledSquares(
+            toRow,
+            toColumn
+        );
+
+    let givesCheck = false;
+
+    if (enemyKing) {
+        givesCheck =
+            controlledSquares.some(
+                square =>
+                    square.row ===
+                        enemyKing.row &&
+                    square.column ===
+                        enemyKing.column
+            );
+    }
+
+    if (givesCheck) {
+        reasons.push(
+            "gives check to the enemy king"
+        );
+    }
+
+
+    /*
+    ========================================================
+    2. CAPTURE / MATERIAL GAIN
+    ========================================================
+    */
+
+    if (
+        target &&
+        target.color === enemyColor
+    ) {
+        const capturedValue =
+            pieceValues[
+                target.type
+            ] || 0;
+
+        const attackerValue =
+            pieceValues[
+                piece.type
+            ] || 0;
+
+        if (
+            capturedValue >
+            attackerValue
+        ) {
+            reasons.push(
+                `wins a more valuable ${pieceNames[target.type] || target.type}`
+            );
+        } else if (
+            capturedValue ===
+            attackerValue
+        ) {
+            reasons.push(
+                `captures an enemy ${pieceNames[target.type] || target.type}`
+            );
+        }
+    }
+
+
+    /*
+    ========================================================
+    3. FORK / DOUBLE ATTACK
+    ========================================================
+
+    Count enemy pieces attacked by the moved piece.
+    */
+
+    const valuableTargets = [];
+
+    for (
+        const square of controlledSquares
+    ) {
+        const attackedPiece =
+            getPieceAt(square);
+
+        if (
+            !attackedPiece ||
+            attackedPiece.color !== enemyColor
+        ) {
+            continue;
+        }
+
+        valuableTargets.push({
+            piece:
+                attackedPiece,
+            row:
+                square.row,
+            column:
+                square.column
+        });
+    }
+
+    if (
+        valuableTargets.length >= 2
+    ) {
+        const targetDescription =
+            valuableTargets
+                .slice(0, 2)
+                .map(item => {
+                    return (
+                        pieceNames[
+                            item.piece.type
+                        ] ||
+                        item.piece.type
+                    );
+                })
+                .join(" and ");
+
+        reasons.push(
+            `creates a double attack on the ${targetDescription}`
+        );
+    }
+
+
+    /*
+    ========================================================
+    4. FORK INVOLVING KING
+    ========================================================
+    */
+
+    const attacksKing =
+        valuableTargets.some(
+            item =>
+                item.piece.type ===
+                "king"
+        );
+
+    const attacksOtherValuablePiece =
+        valuableTargets.some(
+            item =>
+                item.piece.type !==
+                    "king" &&
+                (
+                    pieceValues[
+                        item.piece.type
+                    ] || 0
+                ) >= 3
+        );
+
+    if (
+        attacksKing &&
+        attacksOtherValuablePiece
+    ) {
+        reasons.push(
+            "creates a fork involving the king and another valuable piece"
+        );
+    }
+
+
+    /*
+    ========================================================
+    5. ATTACK ON A MORE VALUABLE PIECE
+    ========================================================
+    */
+
+    const movingPieceValue =
+        pieceValues[
+            piece.type
+        ] || 0;
+
+    const higherValueTargets =
+        valuableTargets.filter(
+            item => {
+                const targetValue =
+                    pieceValues[
+                        item.piece.type
+                    ] || 0;
+
+                return (
+                    targetValue >
+                    movingPieceValue &&
+                    item.piece.type !==
+                        "king"
+                );
+            }
+        );
+
+    if (
+        higherValueTargets.length > 0
+    ) {
+        const attacked =
+            higherValueTargets[0];
+
+        reasons.push(
+            `attacks the more valuable ${pieceNames[attacked.piece.type] || attacked.piece.type} on ${squareName(attacked.row, attacked.column)}`
+        );
+    }
+
+
+    /*
+    ========================================================
+    6. HANGING / UNDEFENDED TARGET
+    ========================================================
+
+    This is deliberately described cautiously.
+    A full exchange calculation will later be handled
+    with Stockfish.
+    */
+
+    for (
+        const attacked of valuableTargets
+    ) {
+        if (
+            attacked.piece.type ===
+            "king"
+        ) {
+            continue;
+        }
+
+        const targetValue =
+            pieceValues[
+                attacked.piece.type
+            ] || 0;
+
+        if (
+            targetValue >= 3
+        ) {
+            reasons.push(
+                `puts tactical pressure on the ${pieceNames[attacked.piece.type] || attacked.piece.type} on ${squareName(attacked.row, attacked.column)}`
+            );
+
+            break;
+        }
+    }
+
+
+    /*
+    ========================================================
+    7. PIN DETECTION
+    ========================================================
+
+    Pins are relevant mainly for bishops, rooks and queens.
+    Look beyond an attacked enemy piece to see whether the
+    enemy king lies directly behind it.
+    */
+
+    if (
+        piece.type === "bishop" ||
+        piece.type === "rook" ||
+        piece.type === "queen"
+    ) {
+        const directions = [];
+
+        if (
+            piece.type === "bishop" ||
+            piece.type === "queen"
+        ) {
+            directions.push(
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            );
+        }
+
+        if (
+            piece.type === "rook" ||
+            piece.type === "queen"
+        ) {
+            directions.push(
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1]
+            );
+        }
+
+        for (
+            const [
+                rowDirection,
+                columnDirection
+            ] of directions
+        ) {
+            let row =
+                toRow +
+                rowDirection;
+
+            let column =
+                toColumn +
+                columnDirection;
+
+            let firstEnemyPiece =
+                null;
+
+            while (
+                row >= 0 &&
+                row < 8 &&
+                column >= 0 &&
+                column < 8
+            ) {
+                const boardPiece =
+                    temporaryBoard[
+                        row
+                    ][
+                        column
+                    ];
+
+                if (boardPiece) {
+                    if (
+                        !firstEnemyPiece
+                    ) {
+                        if (
+                            boardPiece.color ===
+                            enemyColor
+                        ) {
+                            firstEnemyPiece = {
+                                piece:
+                                    boardPiece,
+                                row,
+                                column
+                            };
+                        } else {
+                            break;
+                        }
+                    } else {
+                        if (
+                            boardPiece.color ===
+                                enemyColor &&
+                            boardPiece.type ===
+                                "king"
+                        ) {
+                            if (
+                                firstEnemyPiece
+                                    .piece
+                                    .type !==
+                                "king"
+                            ) {
+                                reasons.push(
+                                    `pins the ${pieceNames[firstEnemyPiece.piece.type] || firstEnemyPiece.piece.type} on ${squareName(firstEnemyPiece.row, firstEnemyPiece.column)} to the king`
+                                );
+                            }
+                        }
+
+                        break;
+                    }
+                }
+
+                row +=
+                    rowDirection;
+
+                column +=
+                    columnDirection;
+            }
+        }
+    }
+
+
+    /*
+    ========================================================
+    8. SKEWER DETECTION
+    ========================================================
+
+    Look for a high-value enemy piece first and a second
+    enemy piece behind it on the same line.
+    */
+
+    if (
+        piece.type === "bishop" ||
+        piece.type === "rook" ||
+        piece.type === "queen"
+    ) {
+        const directions = [];
+
+        if (
+            piece.type === "bishop" ||
+            piece.type === "queen"
+        ) {
+            directions.push(
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            );
+        }
+
+        if (
+            piece.type === "rook" ||
+            piece.type === "queen"
+        ) {
+            directions.push(
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1]
+            );
+        }
+
+        for (
+            const [
+                rowDirection,
+                columnDirection
+            ] of directions
+        ) {
+            let row =
+                toRow +
+                rowDirection;
+
+            let column =
+                toColumn +
+                columnDirection;
+
+            const enemyPiecesOnLine =
+                [];
+
+            while (
+                row >= 0 &&
+                row < 8 &&
+                column >= 0 &&
+                column < 8
+            ) {
+                const boardPiece =
+                    temporaryBoard[
+                        row
+                    ][
+                        column
+                    ];
+
+                if (boardPiece) {
+                    if (
+                        boardPiece.color ===
+                        enemyColor
+                    ) {
+                        enemyPiecesOnLine.push({
+                            piece:
+                                boardPiece,
+                            row,
+                            column
+                        });
+
+                        if (
+                            enemyPiecesOnLine
+                                .length === 2
+                        ) {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                row +=
+                    rowDirection;
+
+                column +=
+                    columnDirection;
+            }
+
+            if (
+                enemyPiecesOnLine.length ===
+                2
+            ) {
+                const first =
+                    enemyPiecesOnLine[0];
+
+                const second =
+                    enemyPiecesOnLine[1];
+
+                const firstValue =
+                    pieceValues[
+                        first.piece.type
+                    ] || 0;
+
+                const secondValue =
+                    pieceValues[
+                        second.piece.type
+                    ] || 0;
+
+                if (
+                    firstValue >
+                    secondValue
+                ) {
+                    reasons.push(
+                        `creates a skewer against the ${pieceNames[first.piece.type] || first.piece.type}`
+                    );
+                }
+            }
+        }
+    }
+
+
+    /*
+    ========================================================
+    9. DISCOVERED ATTACK
+    ========================================================
+
+    We keep this conservative for now. If the moved piece
+    attacks several targets while also exposing a line,
+    describe the tactical activity without claiming a
+    discovered attack unless we can prove it later.
+    */
+
+    if (
+        valuableTargets.length >= 2 &&
+        (
+            piece.type === "knight" ||
+            piece.type === "pawn"
+        )
+    ) {
+        reasons.push(
+            "creates several tactical threats at the same time"
+        );
+    }
+
+
+    /*
+    ========================================================
+    10. DEFENDED ATTACKER
+    ========================================================
+    */
+
+    if (
+        defendedPieces.length > 0 &&
+        valuableTargets.length > 0
+    ) {
+        reasons.push(
+            "combines an attack with support from the rest of the position"
+        );
+    }
+
+
+    /*
+    ========================================================
+    11. MATE PRESSURE
+    ========================================================
+
+    Exact checkmate detection should eventually use the
+    legal-move system or Stockfish. For now we only describe
+    pressure when the move gives check and attacks squares
+    around the enemy king.
+    */
+
+    if (
+        givesCheck &&
+        enemyKing
+    ) {
+        let kingAreaSquares =
+            0;
+
+        for (
+            const square of controlledSquares
+        ) {
+            const rowDistance =
+                Math.abs(
+                    square.row -
+                    enemyKing.row
+                );
+
+            const columnDistance =
+                Math.abs(
+                    square.column -
+                    enemyKing.column
+                );
+
+            if (
+                rowDistance <= 1 &&
+                columnDistance <= 1
+            ) {
+                kingAreaSquares++;
+            }
+        }
+
+        if (
+            kingAreaSquares >= 2
+        ) {
+            reasons.push(
+                "increases tactical pressure around the enemy king"
+            );
+        }
+    }
+
+
+    /*
+    ========================================================
+    12. PROMOTION TACTIC
+    ========================================================
+    */
+
+    if (
+        piece.type === "pawn"
+    ) {
+        const promotionRow =
+            color === "white"
+                ? 0
+                : 7;
+
+        const oneStepAway =
+            color === "white"
+                ? toRow === 1
+                : toRow === 6;
+
+        if (
+            toRow === promotionRow
+        ) {
+            reasons.push(
+                "uses promotion as a tactical resource"
+            );
+        } else if (
+            oneStepAway
+        ) {
+            reasons.push(
+                "creates the tactical threat of promotion"
+            );
+        }
+    }
+
+
+    return [
+        ...new Set(reasons)
+    ];
+}
 
 /*
 ============================================================
@@ -1220,6 +2005,140 @@ function getTeacherSpecialMoveReasons(context) {
     return reasons;
 }
 
+/*
+============================================================
+EXPLANATION PRIORITY
+============================================================
+*/
+
+function prioritizeTeacherReasons(groups) {
+    const selected = [];
+    const used = new Set();
+
+    function add(reason) {
+        if (!reason) {
+            return;
+        }
+
+        const normalized =
+            reason
+                .toLowerCase()
+                .trim();
+
+        /*
+        Avoid exact duplicates.
+        */
+
+        if (used.has(normalized)) {
+            return;
+        }
+
+        /*
+        Avoid several descriptions of the same
+        tactical attack.
+        */
+
+        if (
+            selected.some(existing =>
+                existing.includes(
+                    "double attack"
+                )
+            ) &&
+            (
+                normalized.includes(
+                    "tactical pressure"
+                ) ||
+                normalized.includes(
+                    "several tactical threats"
+                )
+            )
+        ) {
+            return;
+        }
+
+        if (
+            normalized.includes(
+                "double attack"
+            )
+        ) {
+            /*
+            Remove weaker generic attack descriptions.
+            */
+
+            for (
+                let index =
+                    selected.length - 1;
+                index >= 0;
+                index--
+            ) {
+                if (
+                    selected[index].includes(
+                        "tactical pressure"
+                    ) ||
+                    selected[index].includes(
+                        "several tactical threats"
+                    )
+                ) {
+                    selected.splice(
+                        index,
+                        1
+                    );
+                }
+            }
+        }
+
+        used.add(normalized);
+
+        selected.push(
+            normalized
+        );
+    }
+
+
+    /*
+    Priority:
+    tactical ideas first.
+    */
+
+    const priorityOrder = [
+        groups.tactical,
+        groups.kingSafety,
+        groups.attack,
+        groups.development,
+        groups.center,
+        groups.defense,
+        groups.pawn,
+        groups.special
+    ];
+
+    for (
+        const group of priorityOrder
+    ) {
+        if (
+            !Array.isArray(group)
+        ) {
+            continue;
+        }
+
+        for (
+            const reason of group
+        ) {
+            add(reason);
+
+            /*
+            Maximum three main teaching points.
+            */
+
+            if (
+                selected.length >= 3
+            ) {
+                return selected;
+            }
+        }
+    }
+
+    return selected;
+}
 
 /*
 ============================================================
@@ -1482,108 +2401,85 @@ function generateTeacherExplanation(
     };
 
 
-    /*
-    ========================================================
-    DEVELOPMENT
-    ========================================================
+   /*
+    ============================================================
+    COLLECT EXPLANATION REASONS
+    ============================================================
     */
 
-    reasons.push(
-        ...getTeacherDevelopmentReasons(
+    const developmentReasons =
+        getTeacherDevelopmentReasons(
             explanationContext
-        )
-    );
+        );
 
-
-    /*
-    ========================================================
-    CENTRE
-    ========================================================
-    */
-
-    reasons.push(
-        ...getTeacherCenterReasons(
+    const centerReasons =
+        getTeacherCenterReasons(
             explanationContext
-        )
-    );
+        );
 
-
-    /*
-    ========================================================
-    ATTACKS AND CAPTURES
-    ========================================================
-    */
-
-    reasons.push(
-        ...getTeacherAttackReasons(
+    const attackReasons =
+        getTeacherAttackReasons(
             explanationContext
-        )
-    );
+        );
 
-
-    /*
-    ========================================================
-    DEFENSE
-    ========================================================
-    */
-
-    reasons.push(
-        ...getTeacherDefenseReasons(
+    const defenseReasons =
+        getTeacherDefenseReasons(
             explanationContext
-        )
-    );
+        );
+
+    const kingSafetyReasons =
+        getTeacherKingSafetyReasons(
+            explanationContext
+        );
+
+    const pawnReasons =
+        getTeacherPawnReasons(
+            explanationContext
+        );
+
+    const tacticalReasons =
+        getTeacherTacticalReasons(
+            explanationContext
+        );
+
+    const specialMoveReasons =
+        getTeacherSpecialMoveReasons(
+            explanationContext
+        );
 
 
     /*
-    ========================================================
-    KING SAFETY
-    ========================================================
+    ============================================================
+    SELECT THE MOST IMPORTANT REASONS
+    ============================================================
     */
 
-    reasons.push(
-        ...getTeacherKingSafetyReasons(
-            explanationContext
-        )
-    );
+    const selectedReasons =
+        prioritizeTeacherReasons({
+            tactical:
+                tacticalReasons,
 
+            kingSafety:
+                kingSafetyReasons,
 
-    /*
-    ========================================================
-    PAWN IDEAS
-    ========================================================
-    */
+            attack:
+                attackReasons,
 
-    reasons.push(
-        ...getTeacherPawnReasons(
-            explanationContext
-        )
-    );
+            development:
+                developmentReasons,
 
+            center:
+                centerReasons,
 
-    /*
-    ========================================================
-    TACTICS
-    ========================================================
-    */
+            defense:
+                defenseReasons,
 
-    reasons.push(
-        ...getTeacherTacticalReasons(
-            explanationContext
-        )
-    );
+            pawn:
+                pawnReasons,
 
-
-    /*
-    ========================================================
-    SPECIAL MOVES
-    ========================================================
-    */
-
-    reasons.push(
-        ...getTeacherSpecialMoveReasons(
-            explanationContext
-        )
-    );
+            special:
+                specialMoveReasons
+        });
 
 
     /*
@@ -1593,7 +2489,7 @@ function generateTeacherExplanation(
     */
 
     const uniqueReasons =
-        [...new Set(reasons)];
+        selectedReasons;
 
 
     /*
