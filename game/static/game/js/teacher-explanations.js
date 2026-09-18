@@ -1470,58 +1470,85 @@ function getTeacherTacticalReasons(context) {
     if (
         valuableTargets.length >= 2
     ) {
-        const targetDescription =
-            valuableTargets
-                .slice(0, 2)
-                .map(item => {
-                    return (
-                        pieceNames[
-                            item.piece.type
-                        ] ||
-                        item.piece.type
-                    );
-                })
-                .join(" and ");
+            /*
+            A real tactical fork should involve at least
+            one important target.
 
-        reasons.push(
-            `creates a double attack on the ${targetDescription}`
-        );
-    }
+            Two attacked pawns, for example, are better
+            described simply as multiple attacks.
+            */
+
+            const importantTargets =
+                valuableTargets.filter(
+                    item => {
+                        const value =
+                            pieceValues[
+                                item.piece.type
+                            ] || 0;
+
+                        return (
+                            value >= 3 ||
+                            item.piece.type === "king"
+                        );
+                    }
+                );
+
+            const sortedTargets =
+                [...valuableTargets].sort(
+                    (a, b) => {
+                        const valueA =
+                            pieceValues[
+                                a.piece.type
+                            ] || 0;
+
+                        const valueB =
+                            pieceValues[
+                                b.piece.type
+                            ] || 0;
+
+                        return valueB - valueA;
+                    }
+                );
+
+            const targetDescription =
+                sortedTargets
+                    .slice(0, 2)
+                    .map(item => {
+                        const targetName =
+                            pieceNames[
+                                item.piece.type
+                            ] ||
+                            item.piece.type;
+
+                        const targetSquare =
+                            squareName(
+                                item.row,
+                                item.column
+                            );
+
+                        return (
+                            `${targetName} on ` +
+                            `${targetSquare}`
+                        );
+                    })
+                    .join(" and ");
+
+            if (
+                importantTargets.length >= 2
+            ) {
+                reasons.push(
+                    `forks the ${targetDescription}`
+                );
+            } else if (
+                importantTargets.length === 1
+            ) {
+                reasons.push(
+                    `creates a double attack on the ${targetDescription}`
+                );
+            }
+        }
 
 
-    /*
-    ========================================================
-    4. FORK INVOLVING KING
-    ========================================================
-    */
-
-    const attacksKing =
-        valuableTargets.some(
-            item =>
-                item.piece.type ===
-                "king"
-        );
-
-    const attacksOtherValuablePiece =
-        valuableTargets.some(
-            item =>
-                item.piece.type !==
-                    "king" &&
-                (
-                    pieceValues[
-                        item.piece.type
-                    ] || 0
-                ) >= 3
-        );
-
-    if (
-        attacksKing &&
-        attacksOtherValuablePiece
-    ) {
-        reasons.push(
-            "creates a fork involving the king and another valuable piece"
-        );
-    }
 
 
     /*
@@ -2100,15 +2127,80 @@ function prioritizeTeacherReasons(groups) {
     tactical ideas first.
     */
 
+    /*
+    Major tactical ideas deserve highest priority.
+    Generic tactical comments do not.
+    */
+
+    const majorTacticalReasons =
+        (groups.tactical || []).filter(
+            reason => {
+                const text =
+                    reason.toLowerCase();
+
+                return (
+                    text.includes("check") ||
+                    text.includes("fork") ||
+                    text.includes("double attack") ||
+                    text.includes("pin") ||
+                    text.includes("skewer") ||
+                    text.includes("wins") ||
+                    text.includes("promotion")
+                );
+            }
+        );
+
+
+    const minorTacticalReasons =
+        (groups.tactical || []).filter(
+            reason =>
+                !majorTacticalReasons.includes(
+                    reason
+                )
+        );
+
+
+        /*
+    If a major tactical explanation already describes
+    a fork/double attack, do not repeat the complete
+    list of attacked pieces.
+    */
+
+    const hasMajorMultipleAttack =
+        majorTacticalReasons.some(
+            reason => {
+                const text =
+                    reason.toLowerCase();
+
+                return (
+                    text.includes("double attack") ||
+                    text.includes("fork")
+                );
+            }
+        );
+
+    const filteredAttackReasons =
+        hasMajorMultipleAttack
+            ? (groups.attack || []).filter(
+                reason =>
+                    !reason
+                        .toLowerCase()
+                        .includes(
+                            "attacks the enemy"
+                        )
+            )
+            : groups.attack;
+
     const priorityOrder = [
-        groups.tactical,
-        groups.kingSafety,
-        groups.attack,
+        majorTacticalReasons,
+        filteredAttackReasons,
+        groups.special,
         groups.development,
+        groups.kingSafety,
         groups.center,
         groups.defense,
         groups.pawn,
-        groups.special
+        minorTacticalReasons
     ];
 
     for (
