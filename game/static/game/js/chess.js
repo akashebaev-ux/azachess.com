@@ -3127,10 +3127,139 @@ document.addEventListener("DOMContentLoaded", function () {
     function getTeacherKingSafetyReasons(context) {
         const reasons = [];
 
+        const {
+            piece,
+            fromRow,
+            fromColumn,
+            toColumn
+        } = context;
+
         /*
-        More king-safety explanations
-        will be moved here later.
+        Actual castling.
         */
+
+        if (
+            piece.type === "king" &&
+            Math.abs(
+                toColumn - fromColumn
+            ) === 2
+        ) {
+            reasons.push(
+                "improves king safety by castling"
+            );
+
+            return reasons;
+        }
+
+        /*
+        Preparing kingside castling.
+        */
+
+        const startingRow =
+            piece.color === "white"
+                ? 7
+                : 0;
+
+        const movedKingsideKnight =
+            piece.type === "knight" &&
+            fromRow === startingRow &&
+            fromColumn === 6;
+
+        const movedKingsideBishop =
+            piece.type === "bishop" &&
+            fromRow === startingRow &&
+            fromColumn === 5;
+
+        if (
+            movedKingsideKnight ||
+            movedKingsideBishop
+        ) {
+            const castlingBoard =
+                cloneBoard(board);
+
+            const toRow =
+                context.toRow;
+
+            castlingBoard[toRow][toColumn] =
+                castlingBoard[
+                    fromRow
+                ][
+                    fromColumn
+                ];
+
+            castlingBoard[
+                fromRow
+            ][
+                fromColumn
+            ] = null;
+
+            const king =
+                castlingBoard[
+                    startingRow
+                ][4];
+
+            const rook =
+                castlingBoard[
+                    startingRow
+                ][7];
+
+            const bishopSquare =
+                castlingBoard[
+                    startingRow
+                ][5];
+
+            const knightSquare =
+                castlingBoard[
+                    startingRow
+                ][6];
+
+            const kingAndRookCanCastle =
+                king &&
+                king.type === "king" &&
+                king.color === piece.color &&
+                !king.hasMoved &&
+                rook &&
+                rook.type === "rook" &&
+                rook.color === piece.color &&
+                !rook.hasMoved;
+
+            const castlingPathClear =
+                !bishopSquare &&
+                !knightSquare;
+
+            if (
+                kingAndRookCanCastle &&
+                castlingPathClear
+            ) {
+                const originalBoardForCastling =
+                    board;
+
+                board = castlingBoard;
+
+                const castlingIsLegal =
+                    canCastle(
+                        piece.color,
+                        "kingSide"
+                    );
+
+                board =
+                    originalBoardForCastling;
+
+                if (castlingIsLegal) {
+                    reasons.push(
+                        "makes kingside castling available"
+                    );
+                } else {
+                    reasons.push(
+                        "clears the path for kingside castling"
+                    );
+                }
+            } else {
+                reasons.push(
+                    "helps prepare kingside castling"
+                );
+            }
+        }
 
         return reasons;
     }
@@ -3388,138 +3517,6 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
 
-        /*
-        ========================================================
-        PREPARING KINGSIDE CASTLING
-        ========================================================
-        */
-
-        const startingRow =
-            piece.color === "white"
-                ? 7
-                : 0;
-
-        const movedKingsideKnight =
-            piece.type === "knight" &&
-            fromRow === startingRow &&
-            fromColumn === 6;
-
-        const movedKingsideBishop =
-            piece.type === "bishop" &&
-            fromRow === startingRow &&
-            fromColumn === 5;
-
-        if (
-            movedKingsideKnight ||
-            movedKingsideBishop
-        ) {
-            /*
-            Look at what the board will look
-            like AFTER this move.
-            */
-
-            const castlingBoard =
-                cloneBoard(board);
-
-            castlingBoard[toRow][toColumn] =
-                castlingBoard[
-                    fromRow
-                ][
-                    fromColumn
-                ];
-
-            castlingBoard[
-                fromRow
-            ][
-                fromColumn
-            ] = null;
-
-            const king =
-                castlingBoard[
-                    startingRow
-                ][4];
-
-            const rook =
-                castlingBoard[
-                    startingRow
-                ][7];
-
-            const bishopSquare =
-                castlingBoard[
-                    startingRow
-                ][5];
-
-            const knightSquare =
-                castlingBoard[
-                    startingRow
-                ][6];
-
-            const kingAndRookCanCastle =
-                king &&
-                king.type === "king" &&
-                king.color === piece.color &&
-                !king.hasMoved &&
-                rook &&
-                rook.type === "rook" &&
-                rook.color === piece.color &&
-                !rook.hasMoved;
-
-            const castlingPathClear =
-                !bishopSquare &&
-                !knightSquare;
-
-            if (
-                kingAndRookCanCastle &&
-                castlingPathClear
-            ) {
-                const originalBoardForCastling =
-                    board;
-
-                board =
-                    castlingBoard;
-
-                const castlingIsLegal =
-                    canCastle(
-                        piece.color,
-                        "kingSide"
-                    );
-
-                board =
-                    originalBoardForCastling;
-
-                if (castlingIsLegal) {
-                    reasons.push(
-                        "makes kingside castling available"
-                    );
-                } else {
-                    reasons.push(
-                        "clears the path for kingside castling"
-                    );
-                }
-            } else {
-                reasons.push(
-                    "helps prepare kingside castling"
-                );
-            }
-        }
-
-
-        /*
-        ========================================================
-        ACTUAL CASTLING
-        ========================================================
-        */
-
-        if (
-            piece.type === "king" &&
-            Math.abs(
-                toColumn - fromColumn
-            ) === 2
-        ) {
-            reasons.push(
-                "improves king safety by castling"
-            );
-        }
 
 
         /*
