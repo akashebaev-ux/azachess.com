@@ -479,29 +479,698 @@ function getTeacherKingSafetyReasons(context) {
 ============================================================
 PAWN IDEAS
 ============================================================
-
-We will expand this module after the file separation
-has been tested successfully.
-============================================================
 */
 
 function getTeacherPawnReasons(context) {
     const reasons = [];
 
+    const {
+        piece,
+        target,
+        fromRow,
+        fromColumn,
+        toRow,
+        toColumn,
+        destination,
+        api
+    } = context;
+
     /*
-    Pawn breaks
-    passed pawns
-    connected pawns
-    isolated pawns
-    doubled pawns
-    pawn chains
-    space
-    promotion
-    en passant
-    king pawn shield
-    opening lines
-    will be added here.
+    Only analyse pawn moves here.
     */
+
+    if (
+        !piece ||
+        piece.type !== "pawn"
+    ) {
+        return reasons;
+    }
+
+    const board =
+        api.getBoard();
+
+    const color =
+        piece.color;
+
+    const enemyColor =
+        color === "white"
+            ? "black"
+            : "white";
+
+    const direction =
+        color === "white"
+            ? -1
+            : 1;
+
+    const startingRow =
+        color === "white"
+            ? 6
+            : 1;
+
+    const promotionRow =
+        color === "white"
+            ? 0
+            : 7;
+
+    const rank =
+        8 - toRow;
+
+    const fileLetters =
+        [
+            "a", "b", "c", "d",
+            "e", "f", "g", "h"
+        ];
+
+
+    /*
+    ========================================================
+    1. PAWN DEVELOPMENT
+    ========================================================
+    */
+
+    if (
+        fromRow === startingRow
+    ) {
+        reasons.push(
+            "develops a pawn from its starting position"
+        );
+    }
+
+
+    /*
+    ========================================================
+    2. TWO-SQUARE OPENING MOVE
+    ========================================================
+    */
+
+    if (
+        fromRow === startingRow &&
+        Math.abs(
+            toRow - fromRow
+        ) === 2
+    ) {
+        reasons.push(
+            "gains space quickly"
+        );
+    }
+
+
+    /*
+    ========================================================
+    3. CENTRAL PAWN
+    ========================================================
+    */
+
+    if (
+        toColumn === 3 ||
+        toColumn === 4
+    ) {
+        reasons.push(
+            "strengthens the pawn presence in the centre"
+        );
+    }
+
+
+    /*
+    ========================================================
+    4. PAWN CAPTURE
+    ========================================================
+    */
+
+    if (
+        target &&
+        target.color === enemyColor
+    ) {
+        reasons.push(
+            "changes the pawn structure by capturing"
+        );
+    }
+
+
+    /*
+    ========================================================
+    5. SPACE GAIN
+    ========================================================
+    */
+
+    const advancedEnough =
+        color === "white"
+            ? toRow <= 3
+            : toRow >= 4;
+
+    if (advancedEnough) {
+        reasons.push(
+            "gains space in the opponent's half"
+        );
+    }
+
+
+    /*
+    ========================================================
+    6. CONNECTED PAWN
+    ========================================================
+
+    Look for a friendly pawn on an adjacent file
+    close enough to support this pawn.
+    */
+
+    let connectedPawn = false;
+
+    for (
+        const columnOffset of [-1, 1]
+    ) {
+        const adjacentColumn =
+            toColumn + columnOffset;
+
+        if (
+            adjacentColumn < 0 ||
+            adjacentColumn > 7
+        ) {
+            continue;
+        }
+
+        for (
+            const rowOffset of [-1, 0, 1]
+        ) {
+            const adjacentRow =
+                toRow + rowOffset;
+
+            if (
+                adjacentRow < 0 ||
+                adjacentRow > 7
+            ) {
+                continue;
+            }
+
+            const nearbyPiece =
+                board[
+                    adjacentRow
+                ][
+                    adjacentColumn
+                ];
+
+            if (
+                nearbyPiece &&
+                nearbyPiece.type === "pawn" &&
+                nearbyPiece.color === color
+            ) {
+                connectedPawn = true;
+                break;
+            }
+        }
+
+        if (connectedPawn) {
+            break;
+        }
+    }
+
+    if (connectedPawn) {
+        reasons.push(
+            "keeps contact with another friendly pawn"
+        );
+    }
+
+
+    /*
+    ========================================================
+    7. PAWN CHAIN
+    ========================================================
+
+    A pawn is supported diagonally from behind
+    by another friendly pawn.
+    */
+
+    const supportingRow =
+        toRow - direction;
+
+    let pawnChain = false;
+
+    if (
+        supportingRow >= 0 &&
+        supportingRow <= 7
+    ) {
+        for (
+            const columnOffset of [-1, 1]
+        ) {
+            const supportingColumn =
+                toColumn + columnOffset;
+
+            if (
+                supportingColumn < 0 ||
+                supportingColumn > 7
+            ) {
+                continue;
+            }
+
+            const supportingPiece =
+                board[
+                    supportingRow
+                ][
+                    supportingColumn
+                ];
+
+            if (
+                supportingPiece &&
+                supportingPiece.type === "pawn" &&
+                supportingPiece.color === color
+            ) {
+                pawnChain = true;
+                break;
+            }
+        }
+    }
+
+    if (pawnChain) {
+        reasons.push(
+            "forms part of a pawn chain"
+        );
+    }
+
+
+    /*
+    ========================================================
+    8. DOUBLED PAWNS
+    ========================================================
+    */
+
+    let friendlyPawnsOnSameFile = 0;
+
+    for (
+        let row = 0;
+        row < 8;
+        row++
+    ) {
+        const boardPiece =
+            board[row][toColumn];
+
+        if (
+            boardPiece &&
+            boardPiece.type === "pawn" &&
+            boardPiece.color === color
+        ) {
+            friendlyPawnsOnSameFile++;
+        }
+    }
+
+    /*
+    The board still represents the position before
+    the move, so include the moving pawn if needed.
+    */
+
+    const pawnAlreadyOnDestinationFile =
+        fromColumn === toColumn;
+
+    if (
+        !pawnAlreadyOnDestinationFile
+    ) {
+        friendlyPawnsOnSameFile++;
+    }
+
+    if (
+        friendlyPawnsOnSameFile > 1
+    ) {
+        reasons.push(
+            "may create doubled pawns on this file"
+        );
+    }
+
+
+    /*
+    ========================================================
+    9. ISOLATED PAWN
+    ========================================================
+
+    No friendly pawn exists on either adjacent file.
+    */
+
+    let friendlyPawnOnAdjacentFile = false;
+
+    for (
+        const columnOffset of [-1, 1]
+    ) {
+        const adjacentColumn =
+            toColumn + columnOffset;
+
+        if (
+            adjacentColumn < 0 ||
+            adjacentColumn > 7
+        ) {
+            continue;
+        }
+
+        for (
+            let row = 0;
+            row < 8;
+            row++
+        ) {
+            const boardPiece =
+                board[
+                    row
+                ][
+                    adjacentColumn
+                ];
+
+            if (
+                boardPiece &&
+                boardPiece.type === "pawn" &&
+                boardPiece.color === color
+            ) {
+                friendlyPawnOnAdjacentFile =
+                    true;
+
+                break;
+            }
+        }
+
+        if (
+            friendlyPawnOnAdjacentFile
+        ) {
+            break;
+        }
+    }
+
+    if (
+        !friendlyPawnOnAdjacentFile
+    ) {
+        reasons.push(
+            "may become an isolated pawn without a friendly pawn on an adjacent file"
+        );
+    }
+
+
+    /*
+    ========================================================
+    10. PASSED PAWN
+    ========================================================
+
+    Search the pawn's file and adjacent files
+    ahead of it for enemy pawns.
+    */
+
+    let enemyPawnBlockingPassage =
+        false;
+
+    for (
+        const columnOffset of [-1, 0, 1]
+    ) {
+        const checkColumn =
+            toColumn + columnOffset;
+
+        if (
+            checkColumn < 0 ||
+            checkColumn > 7
+        ) {
+            continue;
+        }
+
+        let checkRow =
+            toRow + direction;
+
+        while (
+            checkRow >= 0 &&
+            checkRow <= 7
+        ) {
+            const boardPiece =
+                board[
+                    checkRow
+                ][
+                    checkColumn
+                ];
+
+            if (
+                boardPiece &&
+                boardPiece.type === "pawn" &&
+                boardPiece.color === enemyColor
+            ) {
+                enemyPawnBlockingPassage =
+                    true;
+
+                break;
+            }
+
+            checkRow +=
+                direction;
+        }
+
+        if (
+            enemyPawnBlockingPassage
+        ) {
+            break;
+        }
+    }
+
+    if (
+        !enemyPawnBlockingPassage
+    ) {
+        reasons.push(
+            "has the characteristics of a passed pawn because no enemy pawn can oppose it on its file or adjacent files"
+        );
+    }
+
+
+    /*
+    ========================================================
+    11. PAWN BREAK
+    ========================================================
+
+    Check whether enemy pawns are close to the
+    destination square on neighbouring files.
+    */
+
+    let challengesEnemyPawn =
+        false;
+
+    for (
+        const columnOffset of [-1, 1]
+    ) {
+        const enemyColumn =
+            toColumn + columnOffset;
+
+        if (
+            enemyColumn < 0 ||
+            enemyColumn > 7
+        ) {
+            continue;
+        }
+
+        for (
+            const rowOffset of [-1, 0, 1]
+        ) {
+            const enemyRow =
+                toRow + rowOffset;
+
+            if (
+                enemyRow < 0 ||
+                enemyRow > 7
+            ) {
+                continue;
+            }
+
+            const nearbyPiece =
+                board[
+                    enemyRow
+                ][
+                    enemyColumn
+                ];
+
+            if (
+                nearbyPiece &&
+                nearbyPiece.type === "pawn" &&
+                nearbyPiece.color === enemyColor
+            ) {
+                challengesEnemyPawn =
+                    true;
+
+                break;
+            }
+        }
+
+        if (
+            challengesEnemyPawn
+        ) {
+            break;
+        }
+    }
+
+    if (challengesEnemyPawn) {
+        reasons.push(
+            "can act as a pawn break against the opponent's pawn structure"
+        );
+    }
+
+
+    /*
+    ========================================================
+    12. OPENING A DIAGONAL / FILE
+    ========================================================
+    */
+
+    if (
+        fromRow === startingRow
+    ) {
+        if (
+            fromColumn === 3 ||
+            fromColumn === 4
+        ) {
+            reasons.push(
+                "helps open lines for the bishops and queen"
+            );
+        } else {
+            reasons.push(
+                "may open a line for a piece behind the pawn"
+            );
+        }
+    }
+
+
+    /*
+    ========================================================
+    13. KING PAWN SHIELD
+    ========================================================
+
+    Moving f/g/h pawns or a/b/c pawns can affect
+    the king's future shelter.
+    */
+
+    const isKingsidePawn =
+        fromColumn >= 5;
+
+    const isQueensidePawn =
+        fromColumn <= 2;
+
+    if (
+        isKingsidePawn ||
+        isQueensidePawn
+    ) {
+        const movedFar =
+            Math.abs(
+                toRow - fromRow
+            ) >= 2;
+
+        if (movedFar) {
+            reasons.push(
+                "also changes the pawn cover that could protect the king"
+            );
+        }
+    }
+
+
+    /*
+    ========================================================
+    14. ADVANCED PAWN
+    ========================================================
+    */
+
+    const veryAdvanced =
+        color === "white"
+            ? rank >= 6
+            : rank <= 3;
+
+    if (veryAdvanced) {
+        reasons.push(
+            "creates an advanced pawn that may become dangerous"
+        );
+    }
+
+
+    /*
+    ========================================================
+    15. PROMOTION
+    ========================================================
+    */
+
+    if (
+        toRow === promotionRow
+    ) {
+        const promotionLetter =
+            context.uciMove &&
+            context.uciMove.length >= 5
+                ? context.uciMove[4]
+                : "q";
+
+        const promotionNames = {
+            q: "queen",
+            r: "rook",
+            b: "bishop",
+            n: "knight"
+        };
+
+        const promotionPiece =
+            promotionNames[
+                promotionLetter
+            ] || "queen";
+
+        reasons.push(
+            `promotes the pawn to a ${promotionPiece}`
+        );
+    }
+
+
+    /*
+    ========================================================
+    16. NEAR PROMOTION
+    ========================================================
+    */
+
+    const oneStepFromPromotion =
+        color === "white"
+            ? toRow === 1
+            : toRow === 6;
+
+    if (
+        oneStepFromPromotion
+    ) {
+        reasons.push(
+            "moves the pawn only one step away from promotion"
+        );
+    }
+
+
+    /*
+    ========================================================
+    17. EN PASSANT
+    ========================================================
+
+    A diagonal pawn move to an empty destination
+    can indicate en passant.
+
+    We describe it cautiously because the complete
+    en-passant state remains managed by chess.js.
+    */
+
+    if (
+        fromColumn !== toColumn &&
+        !target
+    ) {
+        reasons.push(
+            "uses a diagonal pawn move that may be an en passant capture"
+        );
+    }
+
+
+    /*
+    ========================================================
+    18. FILE DESCRIPTION
+    ========================================================
+    */
+
+    const destinationFile =
+        fileLetters[toColumn];
+
+    /*
+    This gives the teacher useful positional language
+    for particularly advanced pawns.
+    */
+
+    if (
+        veryAdvanced &&
+        destinationFile
+    ) {
+        reasons.push(
+            `puts pressure on the ${destinationFile}-file area`
+        );
+    }
+
 
     return reasons;
 }
