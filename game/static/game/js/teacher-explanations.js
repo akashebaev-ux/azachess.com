@@ -507,6 +507,7 @@ function getTeacherPawnReasons(context) {
     }
 
     const board =
+        context.temporaryBoard ||
         api.getBoard();
 
     const color =
@@ -1464,24 +1465,19 @@ function generateTeacherExplanation(
 
     const explanationContext = {
         api,
-
         piece,
         pieceName,
         target,
-
         fromRow,
         fromColumn,
-
         toRow,
         toColumn,
-
         destination,
         uciMove,
-
+        temporaryBoard,
         attackedPieces,
         defendedPieces,
         controlledEmptySquares,
-
         getTeacherPieceName
     };
 
