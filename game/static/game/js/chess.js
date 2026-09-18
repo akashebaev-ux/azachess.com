@@ -85,6 +85,10 @@ document.addEventListener("DOMContentLoaded", function () {
             "teacher-message"
         );
 
+    const teacherMicrophone =
+        document.getElementById(
+            "teacher-microphone"
+        );
 
 
     /*
@@ -3274,6 +3278,1636 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /*
+    ============================================================
+    TEACHER SPEECH RECOGNITION
+    ============================================================
+    */
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    let teacherRecognition = null;
+
+    if (SpeechRecognition) {
+        teacherRecognition =
+            new SpeechRecognition();
+
+        teacherRecognition.lang = "en-US";
+        teacherRecognition.continuous = false;
+        teacherRecognition.interimResults = false;
+
+        teacherRecognition.onstart = () => {
+            if (teacherMessage) {
+                teacherMessage.textContent =
+                    "I'm listening...";
+            }
+
+            if (teacherMicrophone) {
+                teacherMicrophone.textContent =
+                    "🎙️ Listening...";
+            }
+        };
+
+
+
+
+
+
+
+        /*
+        ============================================================
+        UNIVERSAL CHESS TEACHER LESSON SYSTEM
+        ============================================================
+
+        This system reads lesson instructions from teacher-rules.js.
+
+        It can:
+
+        - create temporary teaching positions
+        - show highlighted squares
+        - demonstrate multiple moves
+        - demonstrate captures
+        - reset between demonstrations
+        - demonstrate castling
+        - demonstrate promotion
+        - demonstrate en passant
+        - show controlled/attacked squares
+        - speak before moving
+        - restore the student's real position
+
+        It deliberately does NOT call makeMove().
+        ============================================================
+        */
+
+
+        /*
+        ============================================================
+        CREATE EMPTY TEACHING BOARD
+        ============================================================
+        */
+
+        function createEmptyTeacherBoard() {
+
+            return Array.from(
+                {
+                    length: 8
+                },
+                () =>
+                    Array(8).fill(null)
+            );
+        }
+
+
+        /*
+        ============================================================
+        SQUARE NAME -> BOARD COORDINATES
+        ============================================================
+
+        Example:
+
+        e4
+
+        becomes:
+
+        {
+            row: 4,
+            column: 4
+        }
+        ============================================================
+        */
+
+        function teacherSquareToCoordinates(
+            squareName
+        ) {
+
+            if (
+                !squareName ||
+                typeof squareName !== "string" ||
+                squareName.length !== 2
+            ) {
+                return null;
+            }
+
+
+            const file =
+                squareName[0]
+                    .toUpperCase();
+
+            const rank =
+                parseInt(
+                    squareName[1],
+                    10
+                );
+
+
+            const column =
+                boardFiles.indexOf(
+                    file
+                );
+
+
+            if (
+                column === -1 ||
+                Number.isNaN(rank) ||
+                rank < 1 ||
+                rank > 8
+            ) {
+                return null;
+            }
+
+
+            return {
+                row:
+                    8 - rank,
+
+                column
+            };
+        }
+
+
+        /*
+        ============================================================
+        CREATE PIECES FOR A TEACHING POSITION
+        ============================================================
+        */
+
+        function createTeacherLessonBoard(
+            setup
+        ) {
+
+            const lessonBoard =
+                createEmptyTeacherBoard();
+
+
+            if (!setup) {
+                return lessonBoard;
+            }
+
+
+            const colors = [
+                "white",
+                "black"
+            ];
+
+
+            colors.forEach(color => {
+
+                const colorSetup =
+                    setup[color];
+
+
+                if (!colorSetup) {
+                    return;
+                }
+
+
+                Object.entries(
+                    colorSetup
+                ).forEach(
+                    ([
+                        pieceType,
+                        squares
+                    ]) => {
+
+                        if (
+                            !Array.isArray(
+                                squares
+                            )
+                        ) {
+                            return;
+                        }
+
+
+                        squares.forEach(
+                            squareName => {
+
+                                const coordinates =
+                                    teacherSquareToCoordinates(
+                                        squareName
+                                    );
+
+
+                                if (!coordinates) {
+                                    return;
+                                }
+
+
+                                lessonBoard[
+                                    coordinates.row
+                                ][
+                                    coordinates.column
+                                ] =
+                                    createPiece(
+                                        pieceType,
+                                        color
+                                    );
+                            }
+                        );
+                    }
+                );
+            });
+
+
+            return lessonBoard;
+        }
+
+
+        /*
+        ============================================================
+        CREATE TEACHER HIGHLIGHT MARKER
+        ============================================================
+        */
+
+        function createTeacherLessonMarker(
+            squareName,
+            markerType =
+                "control"
+        ) {
+
+            const coordinates =
+                teacherSquareToCoordinates(
+                    squareName
+                );
+
+
+            if (!coordinates) {
+                return;
+            }
+
+
+            const square =
+                chessboard.querySelector(
+                    `[data-row="${coordinates.row}"]` +
+                    `[data-column="${coordinates.column}"]`
+                );
+
+
+            if (!square) {
+                return;
+            }
+
+
+            const marker =
+                document.createElement(
+                    "span"
+                );
+
+
+            if (
+                markerType === "attack"
+            ) {
+                marker.classList.add(
+                    "teacher-attack-marker"
+                );
+            } else {
+                marker.classList.add(
+                    "teacher-control-marker"
+                );
+            }
+
+
+            square.appendChild(
+                marker
+            );
+        }
+
+
+        /*
+        ============================================================
+        SHOW SIMPLE LESSON HIGHLIGHTS
+        ============================================================
+        */
+
+        function showTeacherLessonHighlights(
+            squares
+        ) {
+
+            if (
+                !Array.isArray(
+                    squares
+                )
+            ) {
+                return;
+            }
+
+
+            squares.forEach(
+                squareName => {
+
+                    createTeacherLessonMarker(
+                        squareName,
+                        "control"
+                    );
+                }
+            );
+        }
+
+
+        /*
+        ============================================================
+        SHOW RAYS
+
+        Used by:
+
+        - bishop
+        - rook
+        - queen
+
+        Example:
+
+        d4 -> e5 -> f6 -> g7 -> h8
+        ============================================================
+        */
+
+        function showTeacherLessonRays(
+            rays
+        ) {
+
+            if (
+                !Array.isArray(
+                    rays
+                )
+            ) {
+                return;
+            }
+
+
+            rays.forEach(ray => {
+
+                if (
+                    !Array.isArray(
+                        ray.squares
+                    )
+                ) {
+                    return;
+                }
+
+
+                ray.squares.forEach(
+                    squareName => {
+
+                        createTeacherLessonMarker(
+                            squareName,
+                            "control"
+                        );
+                    }
+                );
+            });
+        }
+
+
+        /*
+        ============================================================
+        SHOW BLOCKED RAY
+        ============================================================
+        */
+
+        function showTeacherBlockedRay(
+            squares
+        ) {
+
+            if (
+                !Array.isArray(
+                    squares
+                )
+            ) {
+                return;
+            }
+
+
+            squares.forEach(
+                (
+                    squareName,
+                    index
+                ) => {
+
+                    createTeacherLessonMarker(
+                        squareName,
+                        index === 0
+                            ? "attack"
+                            : "control"
+                    );
+                }
+            );
+        }
+
+
+        /*
+        ============================================================
+        SHOW LESSON VISUALS
+        ============================================================
+        */
+
+        function showTeacherLessonVisuals(
+            lesson
+        ) {
+
+            clearTeacherAttackSquares();
+
+
+            if (
+                lesson.highlights
+            ) {
+                showTeacherLessonHighlights(
+                    lesson.highlights
+                );
+            }
+
+
+            if (
+                lesson.rays
+            ) {
+                showTeacherLessonRays(
+                    lesson.rays
+                );
+            }
+
+
+            if (
+                lesson.blockedRay
+            ) {
+                showTeacherBlockedRay(
+                    lesson.blockedRay
+                );
+            }
+
+
+            /*
+            Tactical lines such as a pin.
+            */
+
+            if (
+                Array.isArray(
+                    lesson.line
+                )
+            ) {
+                showTeacherLessonHighlights(
+                    lesson.line
+                );
+            }
+        }
+
+
+        /*
+        ============================================================
+        SPEAK TEACHER LESSON TEXT
+        ============================================================
+        */
+
+        async function speakTeacherLessonText(
+            text
+        ) {
+
+            if (!text) {
+                return;
+            }
+
+
+            if (teacherMessage) {
+                teacherMessage.textContent =
+                    text;
+            }
+
+
+            await speakTeacherMessage(
+                text
+            );
+        }
+
+
+        /*
+        ============================================================
+        EXECUTE A TEACHING MOVE
+        ============================================================
+
+        IMPORTANT:
+
+        This changes ONLY the temporary teaching board.
+
+        It does NOT:
+
+        - add move history
+        - add captured pieces
+        - call Stockfish
+        - update repetition
+        - update the 50-move counter
+        ============================================================
+        */
+
+        async function executeTeacherLessonMove(
+            demonstration
+        ) {
+
+            if (
+                !demonstration ||
+                !demonstration.from ||
+                !demonstration.to
+            ) {
+                return false;
+            }
+
+
+            const from =
+                teacherSquareToCoordinates(
+                    demonstration.from
+                );
+
+
+            const to =
+                teacherSquareToCoordinates(
+                    demonstration.to
+                );
+
+
+            if (
+                !from ||
+                !to
+            ) {
+                console.warn(
+                    "Invalid teacher lesson move:",
+                    demonstration
+                );
+
+                return false;
+            }
+
+
+            const piece =
+                board[
+                    from.row
+                ][
+                    from.column
+                ];
+
+
+            if (!piece) {
+
+                console.warn(
+                    "Teacher lesson cannot find piece on:",
+                    demonstration.from
+                );
+
+                return false;
+            }
+
+
+            /*
+            ========================================================
+            EXPLAIN BEFORE MOVING
+            ========================================================
+            */
+
+            if (
+                demonstration.text
+            ) {
+
+                await speakTeacherLessonText(
+                    demonstration.text
+                );
+
+
+                await teacherSleep(
+                    350
+                );
+            }
+
+
+            /*
+            ========================================================
+            DRAW ARROW BEFORE MOVING
+            ========================================================
+            */
+
+            const uciMove =
+                demonstration.from +
+                demonstration.to;
+
+
+            drawTeacherArrow(
+                uciMove
+            );
+
+
+            await teacherSleep(
+                700
+            );
+
+
+            /*
+            ========================================================
+            EN PASSANT CAPTURE
+            ========================================================
+            */
+
+            if (
+                demonstration.special ===
+                    "enPassant" &&
+                demonstration.captureSquare
+            ) {
+
+                const capturedSquare =
+                    teacherSquareToCoordinates(
+                        demonstration.captureSquare
+                    );
+
+
+                if (capturedSquare) {
+
+                    board[
+                        capturedSquare.row
+                    ][
+                        capturedSquare.column
+                    ] = null;
+                }
+            }
+
+
+            /*
+            ========================================================
+            NORMAL MOVE / NORMAL CAPTURE
+            ========================================================
+
+            If an enemy piece occupies the destination,
+            assigning our piece to that square removes it.
+
+            Example:
+
+            white pawn e4
+            black pawn f5
+
+            e4 -> f5
+
+            black pawn disappears.
+            ========================================================
+            */
+
+            board[
+                to.row
+            ][
+                to.column
+            ] =
+                piece;
+
+
+            board[
+                from.row
+            ][
+                from.column
+            ] =
+                null;
+
+
+            piece.hasMoved =
+                true;
+
+
+            /*
+            ========================================================
+            CASTLING
+            ========================================================
+            */
+
+            if (
+                demonstration.special ===
+                    "castle" &&
+                demonstration.rookFrom &&
+                demonstration.rookTo
+            ) {
+
+                const rookFrom =
+                    teacherSquareToCoordinates(
+                        demonstration.rookFrom
+                    );
+
+
+                const rookTo =
+                    teacherSquareToCoordinates(
+                        demonstration.rookTo
+                    );
+
+
+                if (
+                    rookFrom &&
+                    rookTo
+                ) {
+
+                    const rook =
+                        board[
+                            rookFrom.row
+                        ][
+                            rookFrom.column
+                        ];
+
+
+                    board[
+                        rookTo.row
+                    ][
+                        rookTo.column
+                    ] =
+                        rook;
+
+
+                    board[
+                        rookFrom.row
+                    ][
+                        rookFrom.column
+                    ] =
+                        null;
+
+
+                    if (rook) {
+                        rook.hasMoved =
+                            true;
+                    }
+                }
+            }
+
+
+            /*
+            ========================================================
+            PROMOTION
+            ========================================================
+            */
+
+            if (
+                demonstration.promotion
+            ) {
+
+                piece.type =
+                    demonstration.promotion;
+            }
+
+
+            /*
+            ========================================================
+            LAST MOVE ARROW
+            ========================================================
+            */
+
+            lastMove = {
+
+                fromRow:
+                    from.row,
+
+                fromColumn:
+                    from.column,
+
+                toRow:
+                    to.row,
+
+                toColumn:
+                    to.column
+            };
+
+
+            /*
+            ========================================================
+            RENDER NEW TEACHING POSITION
+            ========================================================
+            */
+
+            selectedSquare =
+                null;
+
+
+            createBoard();
+
+
+            /*
+            ========================================================
+            SHOW WHAT THE MOVED PIECE CONTROLS
+            ========================================================
+            */
+
+            showTeacherAttacks(
+                to.row,
+                to.column
+            );
+
+
+            await teacherSleep(
+                1300
+            );
+
+
+            return true;
+        }
+
+
+        /*
+        ============================================================
+        SAVE REAL STUDENT POSITION
+        ============================================================
+        */
+
+        function saveTeacherStudentState() {
+
+            return {
+
+                board:
+                    cloneBoard(
+                        board
+                    ),
+
+                currentTurn,
+
+                selectedSquare:
+                    selectedSquare
+                        ? {
+                            ...selectedSquare
+                        }
+                        : null,
+
+                enPassantTarget:
+                    enPassantTarget
+                        ? {
+                            ...enPassantTarget
+                        }
+                        : null,
+
+                halfMoveClock,
+
+                gameOver,
+
+                lastMove:
+                    lastMove
+                        ? {
+                            ...lastMove
+                        }
+                        : null,
+
+                previousEngineEvaluation,
+
+                capturedWhitePieces:
+                    capturedWhitePieces.map(
+                        piece => ({
+                            ...piece
+                        })
+                    ),
+
+                capturedBlackPieces:
+                    capturedBlackPieces.map(
+                        piece => ({
+                            ...piece
+                        })
+                    ),
+
+                moveHistory:
+                    moveHistory.map(
+                        move => ({
+                            ...move
+                        })
+                    ),
+
+                fullMoveNumber
+            };
+        }
+
+
+        /*
+        ============================================================
+        RESTORE REAL STUDENT POSITION
+        ============================================================
+        */
+
+        function restoreTeacherStudentState(
+            savedState
+        ) {
+
+            if (!savedState) {
+                return;
+            }
+
+
+            board =
+                cloneBoard(
+                    savedState.board
+                );
+
+
+            currentTurn =
+                savedState.currentTurn;
+
+
+            selectedSquare =
+                savedState.selectedSquare
+                    ? {
+                        ...savedState.selectedSquare
+                    }
+                    : null;
+
+
+            enPassantTarget =
+                savedState.enPassantTarget
+                    ? {
+                        ...savedState.enPassantTarget
+                    }
+                    : null;
+
+
+            halfMoveClock =
+                savedState.halfMoveClock;
+
+
+            gameOver =
+                savedState.gameOver;
+
+
+            lastMove =
+                savedState.lastMove
+                    ? {
+                        ...savedState.lastMove
+                    }
+                    : null;
+
+
+            previousEngineEvaluation =
+                savedState.previousEngineEvaluation;
+
+
+            capturedWhitePieces =
+                savedState
+                    .capturedWhitePieces
+                    .map(
+                        piece => ({
+                            ...piece
+                        })
+                    );
+
+
+            capturedBlackPieces =
+                savedState
+                    .capturedBlackPieces
+                    .map(
+                        piece => ({
+                            ...piece
+                        })
+                    );
+
+
+            moveHistory =
+                savedState
+                    .moveHistory
+                    .map(
+                        move => ({
+                            ...move
+                        })
+                    );
+
+
+            fullMoveNumber =
+                savedState.fullMoveNumber;
+
+
+            clearTeacherAttackSquares();
+
+
+            createBoard();
+
+            updateTurnDisplay();
+
+            renderCapturedPieces();
+
+            renderMoveHistory();
+        }
+
+
+        /*
+        ============================================================
+        RESET TEMPORARY LESSON POSITION
+        ============================================================
+        */
+
+        function resetTeacherLessonPosition(
+            originalLessonBoard,
+            lesson
+        ) {
+
+            board =
+                cloneBoard(
+                    originalLessonBoard
+                );
+
+
+            currentTurn =
+                "white";
+
+
+            selectedSquare =
+                null;
+
+
+            enPassantTarget =
+                null;
+
+
+            lastMove =
+                null;
+
+
+            clearTeacherAttackSquares();
+
+
+            createBoard();
+
+
+            showTeacherLessonVisuals(
+                lesson
+            );
+        }
+
+
+        /*
+        ============================================================
+        RUN UNIVERSAL TEACHER LESSON
+        ============================================================
+        */
+
+        async function runTeacherLesson(
+            lesson
+        ) {
+
+            if (!lesson) {
+                return;
+            }
+
+
+            /*
+            ========================================================
+            1. SAVE STUDENT'S REAL GAME
+            ========================================================
+            */
+
+            const savedStudentState =
+                saveTeacherStudentState();
+
+
+            /*
+            We use try/finally so that even if a
+            demonstration fails, the student's
+            real position is restored.
+            */
+
+            try {
+
+                /*
+                ====================================================
+                2. SPEAK GENERAL EXPLANATION FIRST
+                ====================================================
+                */
+
+                if (
+                    lesson.answer
+                ) {
+
+                    await speakTeacherLessonText(
+                        lesson.answer
+                    );
+
+
+                    await teacherSleep(
+                        400
+                    );
+                }
+
+
+                /*
+                ====================================================
+                3. TEXT-ONLY LESSON
+                ====================================================
+                */
+
+                if (
+                    !lesson.setup
+                ) {
+                    return;
+                }
+
+
+                /*
+                ====================================================
+                4. BUILD TEMPORARY TEACHING POSITION
+                ====================================================
+                */
+
+                const originalLessonBoard =
+                    createTeacherLessonBoard(
+                        lesson.setup
+                    );
+
+
+                board =
+                    cloneBoard(
+                        originalLessonBoard
+                    );
+
+
+                currentTurn =
+                    "white";
+
+
+                selectedSquare =
+                    null;
+
+
+                enPassantTarget =
+                    null;
+
+
+                lastMove =
+                    null;
+
+
+                createBoard();
+
+
+                /*
+                ====================================================
+                5. SHOW MOVEMENT PATTERN
+                ====================================================
+                */
+
+                showTeacherLessonVisuals(
+                    lesson
+                );
+
+
+                /*
+                If this lesson only shows movement
+                squares and contains no actual moves,
+                keep it visible for a little while.
+                */
+
+                if (
+                    !Array.isArray(
+                        lesson.demonstrations
+                    ) ||
+                    lesson.demonstrations.length === 0
+                ) {
+
+                    if (
+                        lesson.text
+                    ) {
+
+                        await speakTeacherLessonText(
+                            lesson.text
+                        );
+                    }
+
+
+                    await teacherSleep(
+                        2500
+                    );
+
+
+                    return;
+                }
+
+
+                await teacherSleep(
+                    900
+                );
+
+
+                /*
+                ====================================================
+                6. EXECUTE EVERY DEMONSTRATION
+                ====================================================
+                */
+
+                for (
+                    const demonstration
+                    of lesson.demonstrations
+                ) {
+
+                    /*
+                    -----------------------------------------------
+                    RESET
+
+                    Example pawn capture:
+
+                    e4 -> f5
+                    RESET
+                    e4 -> d5
+                    -----------------------------------------------
+                    */
+
+                    if (
+                        demonstration.reset
+                    ) {
+
+                        resetTeacherLessonPosition(
+                            originalLessonBoard,
+                            lesson
+                        );
+
+
+                        await teacherSleep(
+                            700
+                        );
+
+
+                        continue;
+                    }
+
+
+                    /*
+                    -----------------------------------------------
+                    NORMAL DEMONSTRATION
+                    -----------------------------------------------
+                    */
+
+                    await executeTeacherLessonMove(
+                        demonstration
+                    );
+                }
+
+
+                /*
+                ====================================================
+                7. LET STUDENT SEE FINAL RESULT
+                ====================================================
+                */
+
+                await teacherSleep(
+                    1000
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Teacher lesson error:",
+                    error
+                );
+
+            } finally {
+
+                /*
+                ====================================================
+                8. ALWAYS RESTORE STUDENT'S REAL GAME
+                ====================================================
+                */
+
+                restoreTeacherStudentState(
+                    savedStudentState
+                );
+            }
+        }
+
+
+        /*
+        ============================================================
+        UNIVERSAL PIECE RULE DEMONSTRATION
+        ============================================================
+        */
+
+        async function demonstratePieceRule(
+            ruleAnswer
+        ) {
+
+            if (!ruleAnswer) {
+                return;
+            }
+
+
+            /*
+            Lessons with a temporary board.
+            */
+
+            if (
+                ruleAnswer.setup
+            ) {
+
+                await runTeacherLesson(
+                    ruleAnswer
+                );
+
+
+                return;
+            }
+
+
+            /*
+            Text-only rule.
+            */
+
+            if (
+                ruleAnswer.answer
+            ) {
+
+                await speakTeacherLessonText(
+                    ruleAnswer.answer
+                );
+            }
+        }
+
+
+
+        async function answerTeacherQuestion(
+            transcript
+        ) {
+
+            const question =
+                transcript
+                    .toLowerCase()
+                    .trim();
+
+            /*
+            ============================================================
+            GENERAL CHESS RULE QUESTIONS
+            ============================================================
+            */
+
+            if (window.AzaChessTeacherRules) {
+
+                const ruleAnswer =
+                    window.AzaChessTeacherRules.answer(
+                        question
+                    );
+
+                if (ruleAnswer) {
+
+                    const visualLessonTypes = [
+                        "piece-movement",
+                        "piece-capture",
+                        "piece-rule",
+                        "special-rule",
+                        "tactical-concept"
+                    ];
+
+                    if (
+                        visualLessonTypes.includes(
+                            ruleAnswer.type
+                        ) &&
+                        (
+                            ruleAnswer.setup ||
+                            ruleAnswer.highlights ||
+                            ruleAnswer.rays ||
+                            ruleAnswer.demonstrations
+                        )
+                    ) {
+                        await demonstratePieceRule(
+                            ruleAnswer
+                        );
+
+                        return null;
+                    }
+
+                    return ruleAnswer.answer;
+                }
+            }
+
+
+                /*
+                ========================================================
+                WHAT DOES THE BISHOP ATTACK?
+                ========================================================
+                */
+
+                if (
+                    question.includes("bishop") &&
+                    (
+                        question.includes("attack") ||
+                        question.includes("control")
+                    )
+                ) {
+                    const bishops = [];
+
+                    for (let row = 0; row < 8; row++) {
+                        for (
+                            let column = 0;
+                            column < 8;
+                            column++
+                        ) {
+                            const piece =
+                                board[row][column];
+
+                            if (
+                                piece &&
+                                piece.color === "white" &&
+                                piece.type === "bishop"
+                            ) {
+                                bishops.push({
+                                    row,
+                                    column,
+                                    piece
+                                });
+                            }
+                        }
+                    }
+
+                    const activeBishops =
+                        bishops
+                            .map(bishop => {
+                                return {
+                                    ...bishop,
+                                    squares:
+                                        getTeacherControlledSquares(
+                                            bishop.row,
+                                            bishop.column
+                                        )
+                                };
+                            })
+                            .filter(
+                                bishop =>
+                                    bishop.squares.length > 0
+                            );
+
+                    /*
+                    Starting position:
+                    both bishops are blocked.
+                    */
+
+                    if (activeBishops.length === 0) {
+                        return (
+                            "Your bishops are currently blocked " +
+                            "by your own pawns. Bishops move and " +
+                            "attack diagonally. You can move a " +
+                            "pawn such as e2 to e4 to open a " +
+                            "diagonal for the bishop on f1."
+                        );
+                    }
+
+                    /*
+                    Prefer the most active bishop.
+                    */
+
+                    activeBishops.sort(
+                        (a, b) =>
+                            b.squares.length -
+                            a.squares.length
+                    );
+
+                    const bishop =
+                        activeBishops[0];
+
+                    const bishopSquare =
+                        getSquareName(
+                            bishop.row,
+                            bishop.column
+                        );
+
+                    const attackedPieces = [];
+
+                    const controlledSquares = [];
+
+                    bishop.squares.forEach(position => {
+                        const squareName =
+                            getSquareName(
+                                position.row,
+                                position.column
+                            );
+
+                        const target =
+                            board[
+                                position.row
+                            ][
+                                position.column
+                            ];
+
+                        if (
+                            target &&
+                            target.color !==
+                                bishop.piece.color
+                        ) {
+                            attackedPieces.push(
+                                `${getTeacherPieceName(target)} on ${squareName}`
+                            );
+                        } else {
+                            controlledSquares.push(
+                                squareName
+                            );
+                        }
+                    });
+
+                    /*
+                    Show the bishop's influence
+                    directly on the board.
+                    */
+
+                    showTeacherAttacks(
+                        bishop.row,
+                        bishop.column
+                    );
+
+                    if (attackedPieces.length > 0) {
+                        return (
+                            `The bishop on ${bishopSquare} ` +
+                            `attacks the enemy ` +
+                            `${attackedPieces.join(" and ")}. ` +
+                            `It also controls the diagonal squares ` +
+                            `${controlledSquares.join(", ")}.`
+                        );
+                    }
+
+                    return (
+                        `The bishop on ${bishopSquare} ` +
+                        `does not currently attack an enemy piece, ` +
+                        `but it controls the diagonal squares ` +
+                        `${controlledSquares.join(", ")}.`
+                    );
+                }
+
+                /*
+                ========================================================
+                UNKNOWN QUESTION
+                ========================================================
+                */
+
+                return (
+                    "I heard your question, but I don't know " +
+                    "how to answer that chess question yet."
+                );
+            }
+
+
+        teacherRecognition.onresult =
+            async event => {
+                const transcript =
+                    event.results[0][0]
+                        .transcript;
+
+                console.log(
+                    "Student said:",
+                    transcript
+                );
+
+                if (teacherMessage) {
+                    teacherMessage.textContent =
+                        `You asked: "${transcript}"`;
+                }
+
+                const answer =
+                    await answerTeacherQuestion(
+                        transcript
+                    );
+
+                if (answer) {
+                    console.log(
+                        "Teacher answer:",
+                        answer
+                    );
+
+                    if (teacherMessage) {
+                        teacherMessage.textContent =
+                            answer;
+                    }
+
+                    await speakTeacherMessage(
+                        answer
+                    );
+                }
+            };
+
+        teacherRecognition.onerror = event => {
+            console.error(
+                "Speech recognition error:",
+                event.error
+            );
+
+            if (teacherMessage) {
+                teacherMessage.textContent =
+                    "I couldn't hear you. Please try again.";
+            }
+        };
+
+        teacherRecognition.onend = () => {
+            if (teacherMicrophone) {
+                teacherMicrophone.textContent =
+                    "🎤 Talk to Teacher";
+            }
+        };
+    }
+
+    if (teacherMicrophone) {
+        teacherMicrophone.addEventListener(
+            "click",
+            () => {
+                if (!teacherRecognition) {
+                    teacherMessage.textContent =
+                        "Speech recognition is not supported in this browser.";
+
+                    return;
+                }
+
+                // Do not let the teacher speak
+                // while listening to the student.
+                window.speechSynthesis.cancel();
+
+                try {
+                    teacherRecognition.start();
+                } catch (error) {
+                    console.warn(
+                        "Microphone is already listening.",
+                        error
+                    );
+                }
+            }
+        );
+    }
+
     function speakTeacherMessage(message) {
         return new Promise(resolve => {
             if (
@@ -3331,8 +4965,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function teacherDemonstrateMove(
         uciMove,
-        explanation = ""
+        explanation = "",
+        options = {}
     ) {
+        const {
+            speak = true,
+            showAttacks = true,
+            pauseAfter = 800
+        } = options;
+
         const teacherMove =
             getTeacherMove(uciMove);
 
@@ -3453,23 +5094,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
         /*
         Show what the demonstrated piece
-        can now attack/control.
+        attacks or controls.
         */
-
-        showTeacherAttacks(
-            move.row,
-            move.column
-        );
+        if (showAttacks) {
+            showTeacherAttacks(
+                move.row,
+                move.column
+            );
+        }
 
         /*
-        Speak while the student can see
-        the demonstrated position.
+        Speak only when this demonstration
+        is supposed to include speech.
         */
-        await speakTeacherMessage(
+        if (
+            speak &&
             teacherExplanation
-        );
+        ) {
+            await speakTeacherMessage(
+                teacherExplanation
+            );
+        }
 
-        await teacherSleep(800);
+        await teacherSleep(
+            pauseAfter
+        );
 
         return true;
     }

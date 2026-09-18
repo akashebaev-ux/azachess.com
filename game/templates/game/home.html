@@ -90,6 +90,16 @@
                         </p>
                     </div>
 
+                    <button
+                        type="button"
+                        id="teacher-microphone"
+                        class="teacher-microphone"
+                        aria-label="Talk to chess teacher"
+                        title="Talk to your chess teacher"
+                    >
+                        🎤 Talk to Teacher
+                    </button>
+
                 </div>
 
                 <h2 id="engine-analysis-title">
@@ -377,6 +387,9 @@
     <!-- ==================================================
          JAVASCRIPT
     =================================================== -->
+    <script
+        src="{% static 'game/js/teacher-rules.js' %}"
+    ></script>
     <script src="{% static 'game/js/teacher-explanations.js' %}"></script>
     <script
         src="{% static 'game/js/chess.js' %}"
