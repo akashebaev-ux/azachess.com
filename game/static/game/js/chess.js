@@ -3274,6 +3274,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function speakTeacherMessage(message) {
+        return new Promise(resolve => {
+            if (
+                !message ||
+                !("speechSynthesis" in window)
+            ) {
+                resolve();
+                return;
+            }
+
+            const speech =
+                new SpeechSynthesisUtterance(
+                    message
+                );
+
+            const voices =
+                window.speechSynthesis.getVoices();
+
+            const preferredVoice =
+                voices.find(
+                    voice =>
+                        voice.name === "Daniel" &&
+                        voice.lang === "en-GB"
+                );
+
+            if (preferredVoice) {
+                speech.voice =
+                    preferredVoice;
+            }
+
+            speech.lang = "en-GB";
+            speech.rate = 0.85;
+            speech.pitch = 0.95;
+            speech.volume = 1;
+
+            speech.onend = () => {
+                resolve();
+            };
+
+            speech.onerror = event => {
+                console.error(
+                    "Teacher speech error:",
+                    event
+                );
+
+                resolve();
+            };
+
+            window.speechSynthesis.speak(
+                speech
+            );
+        });
+    }
+
 
     async function teacherDemonstrateMove(
         uciMove,
@@ -3312,6 +3366,7 @@ document.addEventListener("DOMContentLoaded", function () {
             teacherMessage.textContent =
                 teacherExplanation;
         }
+        
 
         /*
         First show the yellow teacher arrow.
@@ -3406,7 +3461,15 @@ document.addEventListener("DOMContentLoaded", function () {
             move.column
         );
 
-        await teacherSleep(1800);
+        /*
+        Speak while the student can see
+        the demonstrated position.
+        */
+        await speakTeacherMessage(
+            teacherExplanation
+        );
+
+        await teacherSleep(800);
 
         return true;
     }
