@@ -221,6 +221,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /*
+    ============================================================
+    TEACHER PLAY MODE
+    ============================================================
+    */
+
+    let teacherPlayMode = false;
+
+    const teacherColor = "black";
+    const studentColor = "white";
+
+    let teacherThinking = false;
+
+    let pendingTeacherGameConfirmation = false;
+
+    let pendingTeacherGameMode = "normal";
+
+    let blindfoldMode = false;
+
+    let announceTeacherMoves = false;
+
+    let lastTeacherMoveDescription = "";
+
+
+    /*
     Captured pieces.
     */
 
@@ -414,6 +438,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function handleSquareClick(event) {
         if (gameOver) {
+            return;
+        }
+
+        /*
+        Do not allow the student to move
+        the teacher's pieces.
+        */
+
+        if (
+            teacherPlayMode &&
+            (
+                teacherThinking ||
+                currentTurn === teacherColor
+            )
+        ) {
             return;
         }
 
@@ -1636,7 +1675,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function makeMove(
         fromRow,
         fromColumn,
-        move
+        move,
+        promotionOverride = null
     ) {
         const piece =
             board[fromRow][fromColumn];
@@ -1791,8 +1831,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 move.row === 7
             )
         ) {
-            promotionPiece =
-                choosePromotionPiece();
+        promotionPiece =
+            promotionOverride ||
+            choosePromotionPiece();
 
             piece.type =
                 promotionPiece;
@@ -2911,27 +2952,600 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+
     /*
     ============================================================
-    TEACHER MOVE EXPLANATION
+    TEACHER PLAYS A REAL GAME MOVE
     ============================================================
     */
 
-    function getTeacherPieceName(piece) {
-        if (!piece) {
-            return "piece";
+    async function playTeacherGameMove(
+        uciMove
+    ) {
+        if (
+            !teacherPlayMode ||
+            teacherThinking ||
+            gameOver ||
+            currentTurn !== teacherColor
+        ) {
+            return false;
         }
 
-        const names = {
-            pawn: "pawn",
-            knight: "knight",
-            bishop: "bishop",
-            rook: "rook",
-            queen: "queen",
-            king: "king"
+        teacherThinking = true;
+
+        if (teacherMessage) {
+            teacherMessage.textContent =
+                "Let me think...";
+        }
+
+        /*
+        Small pause so the teacher does not
+        move instantly like a machine.
+        */
+
+        await teacherSleep(700);
+
+        const teacherMove =
+            getTeacherMove(
+                uciMove
+            );
+
+        if (!teacherMove) {
+            console.warn(
+                "Teacher could not play:",
+                uciMove
+            );
+
+            teacherThinking = false;
+
+            return false;
+        }
+
+        const {
+            coordinates,
+            move
+        } = teacherMove;
+
+        const {
+            fromRow,
+            fromColumn
+        } = coordinates;
+
+        /*
+        Handle Stockfish promotion notation:
+        e7e8q
+        */
+
+        const promotionMap = {
+            q: "queen",
+            r: "rook",
+            b: "bishop",
+            n: "knight"
         };
 
-        return names[piece.type] || "piece";
+        const promotionChoice =
+            coordinates.promotion
+                ? (
+                    promotionMap[
+                        coordinates.promotion
+                    ] || "queen"
+                )
+                : null;
+
+
+
+        const teacherPieceType =
+            teacherMove.piece.type;
+
+        const wasCapture =
+            Boolean(
+                board[
+                    move.row
+                ][
+                    move.column
+                ]
+            ) ||
+            move.special === "enPassant";
+
+        const wasCastle =
+            move.special === "castle";
+
+        /*
+        IMPORTANT:
+        This is a REAL game move.
+        We deliberately use makeMove().
+        */
+
+        makeMove(
+            fromRow,
+            fromColumn,
+            move,
+            promotionChoice
+        );
+
+        selectedSquare = null;
+
+        createBoard();
+
+        evaluateGameState();
+
+        /*
+        ============================================================
+        TEACHER MOVE ANNOUNCEMENT
+        ============================================================
+        */
+
+        if (!gameOver) {
+
+            const toSquare =
+                uciMove.slice(
+                    2,
+                    4
+                );
+
+            let moveDescription = "";
+
+            if (wasCastle) {
+
+                moveDescription =
+                    move.column === 6
+                        ? "I castle kingside."
+                        : "I castle queenside.";
+
+            } else {
+
+                const action =
+                    wasCapture
+                        ? "takes"
+                        : "to";
+
+                moveDescription =
+                    `I play ${teacherPieceType} ` +
+                    `${action} ${toSquare}.`;
+
+                if (promotionChoice) {
+                    moveDescription +=
+                        ` I promote to ${promotionChoice}.`;
+                }
+            }
+
+            lastTeacherMoveDescription =
+                moveDescription;
+
+            if (teacherMessage) {
+                teacherMessage.textContent =
+                    announceTeacherMoves ||
+                    blindfoldMode
+                        ? (
+                            moveDescription +
+                            " Your turn."
+                        )
+                        : "Your turn.";
+            }
+
+            if (
+                blindfoldMode ||
+                announceTeacherMoves
+            ) {
+                await speakTeacherMessage(
+                    moveDescription +
+                    " Your turn."
+                );
+            }
+        }
+
+        teacherThinking = false;
+
+        return true;
+    }
+
+
+    /*
+    ============================================================
+    START GAME AGAINST TEACHER
+    ============================================================
+    */
+
+    async function startTeacherGame(
+        playBlindfold = false
+    ) {
+        teacherPlayMode = true;
+
+        teacherThinking = false;
+
+        blindfoldMode =
+            playBlindfold;
+
+        /*
+        In blindfold mode the teacher must
+        announce its moves automatically.
+        */
+
+        announceTeacherMoves =
+            playBlindfold;
+
+        pendingTeacherGameConfirmation =
+            false;
+
+        pendingTeacherGameMode =
+            "normal";
+
+        lastTeacherMoveDescription =
+            "";
+
+        await startNewGame(
+            true
+        );
+
+        previousEngineEvaluation =
+            null;
+
+        clearTeacherAttackSquares();
+
+        let message;
+
+        if (blindfoldMode) {
+            message =
+                "Blindfold game started. " +
+                "You are White and I am Black. " +
+                "Say your moves to me, for example, knight f3.";
+        } else {
+            message =
+                "Okay. You are White and I am Black. " +
+                "Make your first move.";
+        }
+
+        if (teacherMessage) {
+            teacherMessage.textContent =
+                message;
+        }
+
+        await speakTeacherMessage(
+            message
+        );
+
+        analyseWithStockfish(
+            false
+        );
+    }
+
+
+    function getSpokenChessSquares(
+        text
+    ) {
+        let normalized =
+            text.toLowerCase();
+
+        const numberWords = {
+            one: "1",
+            two: "2",
+            three: "3",
+            four: "4",
+            five: "5",
+            six: "6",
+            seven: "7",
+            eight: "8"
+        };
+
+        Object.entries(
+            numberWords
+        ).forEach(
+            ([word, number]) => {
+                normalized =
+                    normalized.replace(
+                        new RegExp(
+                            `\\b${word}\\b`,
+                            "g"
+                        ),
+                        number
+                    );
+            }
+        );
+
+        /*
+        Speech recognition may return:
+        "f 3"
+        instead of:
+        "f3"
+        */
+
+        normalized =
+            normalized.replace(
+                /\b([a-h])\s+([1-8])\b/g,
+                "$1$2"
+            );
+
+        return (
+            normalized.match(
+                /\b[a-h][1-8]\b/g
+            ) || []
+        );
+    }
+
+
+    function getSpokenPieceType(
+        text
+    ) {
+        const value =
+            text.toLowerCase();
+
+        if (
+            value.includes("knight") ||
+            value.includes("night") ||
+            value.includes("horse")
+        ) {
+            return "knight";
+        }
+
+        if (value.includes("bishop")) {
+            return "bishop";
+        }
+
+        if (value.includes("rook")) {
+            return "rook";
+        }
+
+        if (value.includes("queen")) {
+            return "queen";
+        }
+
+        if (value.includes("king")) {
+            return "king";
+        }
+
+        if (value.includes("pawn")) {
+            return "pawn";
+        }
+
+        /*
+        If only a square was spoken,
+        for example "e4",
+        assume a pawn move.
+        */
+
+        return null;
+    }
+
+
+    function tryBlindfoldStudentMove(
+        question
+    ) {
+        if (
+            !blindfoldMode ||
+            !teacherPlayMode ||
+            gameOver ||
+            currentTurn !== studentColor
+        ) {
+            return {
+                handled: false,
+                answer: null
+            };
+        }
+
+        /*
+        Castling.
+        */
+
+        if (
+            question.includes("castle")
+        ) {
+            const kingColumn = 4;
+
+            const kingRow =
+                studentColor === "white"
+                    ? 7
+                    : 0;
+
+            const legalMoves =
+                getLegalMoves(
+                    kingRow,
+                    kingColumn
+                );
+
+            let castleMove = null;
+
+            if (
+                question.includes("queen")
+            ) {
+                castleMove =
+                    legalMoves.find(
+                        move =>
+                            move.special ===
+                                "castle" &&
+                            move.column === 2
+                    );
+            } else {
+                castleMove =
+                    legalMoves.find(
+                        move =>
+                            move.special ===
+                                "castle" &&
+                            move.column === 6
+                    );
+            }
+
+            if (!castleMove) {
+                return {
+                    handled: true,
+                    answer:
+                        "You cannot castle there."
+                };
+            }
+
+            makeMove(
+                kingRow,
+                kingColumn,
+                castleMove
+            );
+
+            selectedSquare = null;
+
+            createBoard();
+
+            evaluateGameState();
+
+            return {
+                handled: true,
+                answer: null
+            };
+        }
+
+
+        const squares =
+            getSpokenChessSquares(
+                question
+            );
+
+        if (squares.length === 0) {
+            return {
+                handled: false,
+                answer: null
+            };
+        }
+
+        const destination =
+            squares[
+                squares.length - 1
+            ];
+
+        const destinationCoordinates =
+            teacherSquareToCoordinates(
+                destination
+            );
+
+        if (!destinationCoordinates) {
+            return {
+                handled: true,
+                answer:
+                    "I could not understand the destination square."
+            };
+        }
+
+        const requestedPieceType =
+            getSpokenPieceType(
+                question
+            );
+
+        /*
+        "e4" without a piece name
+        normally means a pawn move.
+        */
+
+        const pieceType =
+            requestedPieceType ||
+            "pawn";
+
+        let requestedSource = null;
+
+        if (squares.length >= 2) {
+            requestedSource =
+                teacherSquareToCoordinates(
+                    squares[0]
+                );
+        }
+
+        const candidates = [];
+
+        for (
+            let row = 0;
+            row < 8;
+            row++
+        ) {
+            for (
+                let column = 0;
+                column < 8;
+                column++
+            ) {
+                const piece =
+                    board[row][column];
+
+                if (
+                    !piece ||
+                    piece.color !== studentColor ||
+                    piece.type !== pieceType
+                ) {
+                    continue;
+                }
+
+                if (
+                    requestedSource &&
+                    (
+                        row !==
+                            requestedSource.row ||
+                        column !==
+                            requestedSource.column
+                    )
+                ) {
+                    continue;
+                }
+
+                const legalMoves =
+                    getLegalMoves(
+                        row,
+                        column
+                    );
+
+                const matchingMove =
+                    legalMoves.find(
+                        move =>
+                            move.row ===
+                                destinationCoordinates.row &&
+                            move.column ===
+                                destinationCoordinates.column
+                    );
+
+                if (matchingMove) {
+                    candidates.push({
+                        row,
+                        column,
+                        move:
+                            matchingMove
+                    });
+                }
+            }
+        }
+
+        if (candidates.length === 0) {
+            return {
+                handled: true,
+                answer:
+                    `I cannot make ${pieceType} to ${destination}.`
+            };
+        }
+
+        if (candidates.length > 1) {
+            return {
+                handled: true,
+                answer:
+                    "More than one piece can move there. " +
+                    "Please also say the starting square."
+            };
+        }
+
+        const candidate =
+            candidates[0];
+
+        makeMove(
+            candidate.row,
+            candidate.column,
+            candidate.move
+        );
+
+        selectedSquare = null;
+
+        createBoard();
+
+        evaluateGameState();
+
+        if (teacherMessage) {
+            teacherMessage.textContent =
+                `Move accepted: ${pieceType} ${destination}.`;
+        }
+
+        return {
+            handled: true,
+            answer: null
+        };
     }
 
     /*
@@ -2959,6 +3573,32 @@ document.addEventListener("DOMContentLoaded", function () {
             board = newBoard;
         }
     };
+
+    /*
+    ============================================================
+    TEACHER PIECE NAME
+    ============================================================
+    */
+
+    function getTeacherPieceName(piece) {
+        if (!piece) {
+            return "piece";
+        }
+
+        const names = {
+            pawn: "pawn",
+            knight: "knight",
+            bishop: "bishop",
+            rook: "rook",
+            queen: "queen",
+            king: "king"
+        };
+
+        return (
+            names[piece.type] ||
+            "piece"
+        );
+    }
 
 
     /*
@@ -4613,6 +5253,203 @@ document.addEventListener("DOMContentLoaded", function () {
                 transcript
                     .toLowerCase()
                     .trim();
+            
+
+            /*
+            ============================================================
+            GAME CONVERSATION
+            ============================================================
+            */
+
+            /*
+            First deal with the answer to:
+            "Do you want to play?"
+            */
+
+            if (pendingTeacherGameConfirmation) {
+
+                const positiveAnswers = [
+                    "yes",
+                    "yeah",
+                    "yep",
+                    "sure",
+                    "ok",
+                    "okay",
+                    "why not",
+                    "of course",
+                    "let's do it",
+                    "lets do it",
+                    "go ahead"
+                ];
+
+                const negativeAnswers = [
+                    "no",
+                    "nope",
+                    "not now",
+                    "maybe later"
+                ];
+
+                const accepted =
+                    positiveAnswers.some(
+                        answer =>
+                            question.includes(answer)
+                    );
+
+                const declined =
+                    negativeAnswers.some(
+                        answer =>
+                            question.includes(answer)
+                    );
+
+                if (accepted) {
+
+                    const shouldPlayBlindfold =
+                        pendingTeacherGameMode ===
+                        "blindfold";
+
+                    pendingTeacherGameConfirmation =
+                        false;
+
+                    await startTeacherGame(
+                        shouldPlayBlindfold
+                    );
+
+                    return null;
+                }
+
+                if (declined) {
+                    pendingTeacherGameConfirmation =
+                        false;
+
+                    pendingTeacherGameMode =
+                        "normal";
+
+                    return "Okay. We can play later.";
+                }
+
+                return "Please answer yes or no.";
+            }
+
+
+            /*
+            Ask for confirmation whenever the student
+            suggests playing.
+
+            Do this only when a game is NOT already running,
+            otherwise questions such as
+            "Why did you play that?"
+            must still work.
+            */
+
+            if (
+                (
+                    !teacherPlayMode ||
+                    gameOver
+                ) &&
+                question.includes("play")
+            ) {
+                pendingTeacherGameConfirmation =
+                    true;
+
+                pendingTeacherGameMode =
+                    question.includes("blindfold")
+                        ? "blindfold"
+                        : "normal";
+
+                if (
+                    pendingTeacherGameMode ===
+                    "blindfold"
+                ) {
+                    return (
+                        "Do you want to play a blindfold game?"
+                    );
+                }
+
+                return "Do you want to play?";
+            }
+
+
+                        /*
+            Turn move announcements off.
+            */
+
+            if (
+                teacherPlayMode &&
+                (
+                    question.includes("stop saying your moves") ||
+                    question.includes("don't say your moves") ||
+                    question.includes("do not say your moves") ||
+                    question.includes("stop announcing")
+                )
+            ) {
+                announceTeacherMoves = false;
+
+                return (
+                    "Okay. I will stop announcing my moves."
+                );
+            }
+
+            /*
+            Turn move announcements on.
+            */
+
+            if (
+                teacherPlayMode &&
+                (
+                    question.includes("say your moves") ||
+                    question.includes("announce your moves") ||
+                    question.includes("say your moves out loud") ||
+                    question.includes("tell me your moves")
+                )
+            ) {
+                announceTeacherMoves = true;
+
+                return (
+                    "Okay. I will say my moves out loud."
+                );
+            }
+
+
+
+            /*
+            Ask what the teacher just played.
+            */
+
+            if (
+                teacherPlayMode &&
+                (
+                    question.includes("what did you play") ||
+                    question.includes("what was your move") ||
+                    question.includes("say your last move") ||
+                    question.includes("repeat your move")
+                )
+            ) {
+                return (
+                    lastTeacherMoveDescription ||
+                    "I haven't made a move yet."
+                );
+            }
+
+            /*
+            ============================================================
+            BLINDFOLD STUDENT MOVE
+            ============================================================
+            */
+
+            if (
+                blindfoldMode &&
+                teacherPlayMode &&
+                currentTurn === studentColor
+            ) {
+                const blindfoldMove =
+                    tryBlindfoldStudentMove(
+                        question
+                    );
+
+                if (blindfoldMove.handled) {
+                    return blindfoldMove.answer;
+                }
+            }
 
             /*
             ============================================================
@@ -6168,12 +7005,15 @@ document.addEventListener("DOMContentLoaded", function () {
     ============================================================
     */
 
-    async function startNewGame() {
+    async function startNewGame(
+        forceStart = false
+    ) {
         /*
         Ask before deleting an active game.
         */
 
         if (
+            !forceStart &&
             !gameOver &&
             moveHistory.length > 0
         ) {
@@ -6226,6 +7066,8 @@ document.addEventListener("DOMContentLoaded", function () {
         lastMove =
             null;
 
+        previousEngineEvaluation =
+            null;
 
         /*
         Reset captured pieces.
@@ -6951,7 +7793,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 previousEngineEvaluation =
                     data.evaluation;
             }
+            /*
+            ============================================================
+            TEACHER MAKES STOCKFISH MOVE
+            ============================================================
+            */
 
+            if (
+                teacherPlayMode &&
+                classifyPlayerMove &&
+                currentTurn === teacherColor &&
+                !teacherThinking &&
+                !gameOver &&
+                data.best_move
+            ) {
+                await playTeacherGameMove(
+                    data.best_move
+                );
+            }
 
         } catch (error) {
             console.error(
