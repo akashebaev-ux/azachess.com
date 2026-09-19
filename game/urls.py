@@ -8,4 +8,9 @@ urlpatterns = [
         views.analyse_position,
         name="analyse_position",
     ),
+    path(
+        "ai-teacher/",
+        views.ai_teacher,
+        name="ai_teacher",
+    ),
 ]

@@ -3293,7 +3293,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return "king";
         }
 
-        if (value.includes("pawn")) {
+        if (
+            value.includes("pawn") ||
+            value.includes("plan")
+        ) {
             return "pawn";
         }
 
@@ -5244,15 +5247,58 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
+        function normalizeTeacherSpeech(text) {
+            let value =
+                text
+                    .toLowerCase()
+                    .trim();
+
+            /*
+            Speech recognition often hears
+            "knight" as "night".
+            */
+
+            value = value
+                .replace(/\bnights\b/g, "knights")
+                .replace(/\bnight\b/g, "knight");
+
+            /*
+            "Pawn" may be recognised as "plan".
+
+            Do not replace every "plan", because:
+            "What is my plan?"
+            is a real chess question.
+
+            Only treat "plan" as "pawn" when
+            the sentence looks like it refers
+            to a chess piece or move.
+            */
+
+            const pawnContext =
+                blindfoldMode ||
+                /\b[a-h][1-8]\b/.test(value) ||
+                /\b(move|moves|moving|capture|captures|capturing|attack|attacks|attacking|defend|defends|push|advance|promote|promotion)\b/.test(
+                    value
+                );
+
+            if (pawnContext) {
+                value = value
+                    .replace(/\bplans\b/g, "pawns")
+                    .replace(/\bplan\b/g, "pawn");
+            }
+
+            return value;
+        }
+
 
         async function answerTeacherQuestion(
             transcript
         ) {
 
             const question =
-                transcript
-                    .toLowerCase()
-                    .trim();
+                normalizeTeacherSpeech(
+                    transcript
+                );
             
 
             /*
@@ -5653,9 +5699,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 ========================================================
                 */
 
-                return (
-                    "I heard your question, but I don't know " +
-                    "how to answer that chess question yet."
+                /*
+                ========================================================
+                AI FALLBACK
+                ========================================================
+                */
+
+                if (teacherMessage) {
+                    teacherMessage.textContent =
+                        "Let me think...";
+                }
+
+                return await askAITeacher(
+                    question
                 );
             }
 
@@ -7424,6 +7480,75 @@ document.addEventListener("DOMContentLoaded", function () {
             cookie.split("=")[1]
         );
     }
+
+
+
+        /*
+    ============================================================
+    AI TEACHER
+    ============================================================
+    */
+
+    async function askAITeacher(question) {
+        try {
+            const response = await fetch(
+                "/ai-teacher/",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            getCSRFToken()
+                    },
+
+                    body: JSON.stringify({
+                        question: question,
+                        fen: boardToFEN()
+                    })
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                console.error(
+                    "AI teacher error:",
+                    data
+                );
+
+                return (
+                    "I cannot answer that " +
+                    "question right now."
+                );
+            }
+
+            console.log(
+                "Teacher answer source:",
+                data.source
+            );
+
+            return (
+                data.answer ||
+                "I am not sure how to answer that."
+            );
+
+        } catch (error) {
+            console.error(
+                "Could not connect to AI teacher:",
+                error
+            );
+
+            return (
+                "I cannot connect to my AI " +
+                "assistant right now."
+            );
+        }
+    }
+
 
     /*
     ============================================================
