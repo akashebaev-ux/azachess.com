@@ -3,3 +3,4 @@ chess==1.11.2
 Django==6.1.1
 python-chess==1.999
 sqlparse==0.6.0
+openai==3.16.2
