@@ -91,6 +91,101 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
 
+    const teacherLanguageSelect =
+        document.getElementById(
+            "teacher-language"
+        );
+
+    const savedTeacherLanguage =
+        localStorage.getItem(
+            "azachessTeacherLanguage"
+        );
+
+    let teacherLanguage =
+        savedTeacherLanguage || "";
+
+    /*
+    ============================================================
+    TEACHER GREETINGS
+    ============================================================
+    */
+
+    function getTeacherGreeting(language) {
+        const greetings = {
+            "en-GB":
+                "Hello! Welcome to AzaChess. " +
+                "I will be your chess teacher.",
+
+            "ru-RU":
+                "Здравствуйте! Добро пожаловать в AzaChess. " +
+                "Я буду вашим преподавателем по шахматам.",
+
+            "kk-KZ":
+                "Сәлем! AzaChess-ке қош келдіңіз. " +
+                "Мен сіздің шахмат мұғаліміңіз боламын.",
+
+            "sv-SE":
+                "Hej! Välkommen till AzaChess. " +
+                "Jag kommer att vara din schacklärare."
+        };
+
+        return (
+            greetings[language] ||
+            greetings["en-GB"]
+        );
+    }
+
+    async function welcomeStudent() {
+        if (!teacherMessage) {
+            return;
+        }
+
+        /*
+        No language has been selected yet.
+        */
+
+        if (!savedTeacherLanguage) {
+            teacherMessage.textContent =
+                "Welcome to AzaChess! " +
+                "Please choose your language. " +
+                "Выберите язык. " +
+                "Тілді таңдаңыз. " +
+                "Välj språk.";
+
+            return;
+        }
+
+        /*
+        Returning student.
+        */
+
+        teacherLanguage =
+            savedTeacherLanguage;
+
+        if (teacherLanguageSelect) {
+            teacherLanguageSelect.value =
+                teacherLanguage;
+        }
+
+        if (teacherRecognition) {
+            teacherRecognition.lang =
+                teacherLanguage;
+        }
+
+        const greeting =
+            getTeacherGreeting(
+                teacherLanguage
+            );
+
+        teacherMessage.textContent =
+            greeting;
+
+        await speakTeacherMessage(
+            greeting
+        );
+    }
+
+
     /*
     ============================================================
     BOARD COORDINATES
@@ -3937,19 +4032,39 @@ document.addEventListener("DOMContentLoaded", function () {
         teacherRecognition =
             new SpeechRecognition();
 
-        teacherRecognition.lang = "en-US";
+        teacherRecognition.lang = teacherLanguage;
         teacherRecognition.continuous = false;
         teacherRecognition.interimResults = false;
 
         teacherRecognition.onstart = () => {
+            const listeningMessages = {
+                "en-GB": "I'm listening...",
+                "ru-RU": "Я слушаю...",
+                "kk-KZ": "Тыңдап тұрмын...",
+                "sv-SE": "Jag lyssnar..."
+            };
+
+            const microphoneMessages = {
+                "en-GB": "🎙️ Listening...",
+                "ru-RU": "🎙️ Слушаю...",
+                "kk-KZ": "🎙️ Тыңдап тұрмын...",
+                "sv-SE": "🎙️ Jag lyssnar..."
+            };
+
             if (teacherMessage) {
                 teacherMessage.textContent =
-                    "I'm listening...";
+                    listeningMessages[
+                        teacherLanguage
+                    ] ||
+                    listeningMessages["en-GB"];
             }
 
             if (teacherMicrophone) {
                 teacherMicrophone.textContent =
-                    "🎙️ Listening...";
+                    microphoneMessages[
+                        teacherLanguage
+                    ] ||
+                    microphoneMessages["en-GB"];
             }
         };
 
@@ -5760,19 +5875,82 @@ document.addEventListener("DOMContentLoaded", function () {
                 event.error
             );
 
+            const errorMessages = {
+                "en-GB":
+                    "I couldn't hear you. Please try again.",
+
+                "ru-RU":
+                    "Я вас не расслышал. Пожалуйста, попробуйте ещё раз.",
+
+                "kk-KZ":
+                    "Мен сізді ести алмадым. Қайтадан айтып көріңіз.",
+
+                "sv-SE":
+                    "Jag kunde inte höra dig. Försök igen."
+            };
+
             if (teacherMessage) {
                 teacherMessage.textContent =
-                    "I couldn't hear you. Please try again.";
+                    errorMessages[
+                        teacherLanguage
+                    ] ||
+                    errorMessages["en-GB"];
             }
         };
 
         teacherRecognition.onend = () => {
+            const talkMessages = {
+                "en-GB": "🎤 Talk to Teacher",
+                "ru-RU": "🎤 Говорить с учителем",
+                "kk-KZ": "🎤 Мұғаліммен сөйлесу",
+                "sv-SE": "🎤 Prata med läraren"
+            };
+
             if (teacherMicrophone) {
                 teacherMicrophone.textContent =
-                    "🎤 Talk to Teacher";
+                    talkMessages[
+                        teacherLanguage
+                    ] ||
+                    talkMessages["en-GB"];
             }
         };
     }
+
+
+    if (teacherLanguageSelect) {
+        teacherLanguageSelect.addEventListener(
+            "change",
+            async () => {
+                teacherLanguage =
+                    teacherLanguageSelect.value;
+
+                localStorage.setItem(
+                    "azachessTeacherLanguage",
+                    teacherLanguage
+                );
+
+                if (teacherRecognition) {
+                    teacherRecognition.lang =
+                        teacherLanguage;
+                }
+
+                const greeting =
+                    getTeacherGreeting(
+                        teacherLanguage
+                    );
+
+                if (teacherMessage) {
+                    teacherMessage.textContent =
+                        greeting;
+                }
+
+                await speakTeacherMessage(
+                    greeting
+                );
+            }
+        );
+    }
+
 
     if (teacherMicrophone) {
         teacherMicrophone.addEventListener(
@@ -5819,19 +5997,64 @@ document.addEventListener("DOMContentLoaded", function () {
             const voices =
                 window.speechSynthesis.getVoices();
 
-            const preferredVoice =
-                voices.find(
-                    voice =>
-                        voice.name === "Daniel" &&
-                        voice.lang === "en-GB"
-                );
+            const languagePrefix =
+                teacherLanguage
+                    .split("-")[0]
+                    .toLowerCase();
+
+            let preferredVoice = null;
+
+            /*
+            Use Daniel for English if available.
+            */
+
+            if (teacherLanguage === "en-GB") {
+                preferredVoice =
+                    voices.find(
+                        voice =>
+                            voice.name === "Daniel" &&
+                            voice.lang === "en-GB"
+                    );
+            }
+
+            /*
+            Find exact voice for selected language.
+            */
+
+            if (!preferredVoice) {
+                preferredVoice =
+                    voices.find(
+                        voice =>
+                            voice.lang.toLowerCase() ===
+                            teacherLanguage.toLowerCase()
+                    );
+            }
+
+            /*
+            Fallback to another voice
+            using the same language.
+            */
+
+            if (!preferredVoice) {
+                preferredVoice =
+                    voices.find(
+                        voice =>
+                            voice.lang
+                                .toLowerCase()
+                                .startsWith(
+                                    languagePrefix
+                                )
+                    );
+            }
 
             if (preferredVoice) {
                 speech.voice =
                     preferredVoice;
             }
 
-            speech.lang = "en-GB";
+            speech.lang =
+                teacherLanguage || "en-GB";
+
             speech.rate = 0.85;
             speech.pitch = 0.95;
             speech.volume = 1;
@@ -7506,7 +7729,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     body: JSON.stringify({
                         question: question,
-                        fen: boardToFEN()
+                        fen: boardToFEN(),
+                        language: teacherLanguage
                     })
                 }
             );
@@ -7950,6 +8174,7 @@ document.addEventListener("DOMContentLoaded", function () {
     START GAME
     ============================================================
     */
+    welcomeStudent();
 
     recordPosition();
 

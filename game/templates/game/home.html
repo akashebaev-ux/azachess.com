@@ -86,9 +86,52 @@
                         aria-live="polite"
                     >
                         <p id="teacher-message">
-                            Welcome! Make a move and I will analyse it.
+                            Welcome to AzaChess!
+                            Please choose your language.
                         </p>
                     </div>
+
+
+                    <!-- ==============================
+                         TEACHER LANGUAGE
+                    =============================== -->
+
+                    <select
+                        id="teacher-language"
+                        class="teacher-language"
+                        aria-label="Choose teacher language"
+                    >
+
+                        <option
+                            value=""
+                            selected
+                            disabled
+                        >
+                            Choose language
+                        </option>
+
+                        <option value="en-GB">
+                            English
+                        </option>
+
+                        <option value="ru-RU">
+                            Русский
+                        </option>
+
+                        <option value="kk-KZ">
+                            Қазақша
+                        </option>
+
+                        <option value="sv-SE">
+                            Svenska
+                        </option>
+
+                    </select>
+
+
+                    <!-- ==============================
+                         TEACHER MICROPHONE
+                    =============================== -->
 
                     <button
                         type="button"
@@ -101,6 +144,7 @@
                     </button>
 
                 </div>
+
 
                 <h2 id="engine-analysis-title">
                     Engine Analysis
@@ -387,10 +431,15 @@
     <!-- ==================================================
          JAVASCRIPT
     =================================================== -->
+
     <script
         src="{% static 'game/js/teacher-rules.js' %}"
     ></script>
-    <script src="{% static 'game/js/teacher-explanations.js' %}"></script>
+
+    <script
+        src="{% static 'game/js/teacher-explanations.js' %}"
+    ></script>
+
     <script
         src="{% static 'game/js/chess.js' %}"
     ></script>
