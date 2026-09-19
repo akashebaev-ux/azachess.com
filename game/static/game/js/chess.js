@@ -103,6 +103,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let teacherLanguage =
         savedTeacherLanguage || "";
+    
+    let teacherAudio = null;
 
     /*
     ============================================================
@@ -5921,6 +5923,7 @@ document.addEventListener("DOMContentLoaded", function () {
         teacherLanguageSelect.addEventListener(
             "change",
             async () => {
+                window.speechSynthesis.cancel();
                 teacherLanguage =
                     teacherLanguageSelect.value;
 
@@ -5979,103 +5982,173 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    function speakTeacherMessage(message) {
+    function loadTeacherVoices() {
         return new Promise(resolve => {
-            if (
-                !message ||
-                !("speechSynthesis" in window)
-            ) {
-                resolve();
-                return;
-            }
-
-            const speech =
-                new SpeechSynthesisUtterance(
-                    message
-                );
-
             const voices =
                 window.speechSynthesis.getVoices();
 
-            const languagePrefix =
-                teacherLanguage
-                    .split("-")[0]
-                    .toLowerCase();
-
-            let preferredVoice = null;
-
-            /*
-            Use Daniel for English if available.
-            */
-
-            if (teacherLanguage === "en-GB") {
-                preferredVoice =
-                    voices.find(
-                        voice =>
-                            voice.name === "Daniel" &&
-                            voice.lang === "en-GB"
-                    );
+            if (voices.length > 0) {
+                resolve(voices);
+                return;
             }
 
-            /*
-            Find exact voice for selected language.
-            */
+            const handleVoicesChanged = () => {
+                const loadedVoices =
+                    window.speechSynthesis.getVoices();
 
-            if (!preferredVoice) {
-                preferredVoice =
-                    voices.find(
-                        voice =>
-                            voice.lang.toLowerCase() ===
-                            teacherLanguage.toLowerCase()
-                    );
-            }
-
-            /*
-            Fallback to another voice
-            using the same language.
-            */
-
-            if (!preferredVoice) {
-                preferredVoice =
-                    voices.find(
-                        voice =>
-                            voice.lang
-                                .toLowerCase()
-                                .startsWith(
-                                    languagePrefix
-                                )
-                    );
-            }
-
-            if (preferredVoice) {
-                speech.voice =
-                    preferredVoice;
-            }
-
-            speech.lang =
-                teacherLanguage || "en-GB";
-
-            speech.rate = 0.85;
-            speech.pitch = 0.95;
-            speech.volume = 1;
-
-            speech.onend = () => {
-                resolve();
+                resolve(loadedVoices);
             };
 
-            speech.onerror = event => {
-                console.error(
-                    "Teacher speech error:",
-                    event
-                );
+            window.speechSynthesis.addEventListener(
+                "voiceschanged",
+                handleVoicesChanged,
+                {
+                    once: true
+                }
+            );
 
-                resolve();
-            };
-
-            window.speechSynthesis.speak(
-                speech
+            setTimeout(
+                () => {
+                    resolve(
+                        window.speechSynthesis.getVoices()
+                    );
+                },
+                1000
             );
         });
+    }
+
+
+    async function speakTeacherMessage(message) {
+        if (!message) {
+            return;
+        }
+
+        const activeLanguage =
+            teacherLanguage || "en-GB";
+
+        try {
+            /*
+            Stop old browser TTS.
+            */
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+
+            /*
+            Stop previous AI audio if
+            the teacher is already speaking.
+            */
+            if (teacherAudio) {
+                teacherAudio.pause();
+                teacherAudio.currentTime = 0;
+                teacherAudio = null;
+            }
+
+            const response =
+                await fetch(
+                    "/teacher-speech/",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            "X-CSRFToken":
+                                getCSRFToken()
+                        },
+
+                        body: JSON.stringify({
+                            text: message,
+                            language: activeLanguage
+                        })
+                    }
+                );
+
+            if (!response.ok) {
+                const errorText =
+                    await response.text();
+
+                throw new Error(
+                    "Teacher speech request failed: " +
+                    response.status +
+                    " " +
+                    errorText
+                );
+            }
+
+            const audioBlob =
+                await response.blob();
+
+            const audioUrl =
+                URL.createObjectURL(
+                    audioBlob
+                );
+
+            teacherAudio =
+                new Audio(
+                    audioUrl
+                );
+
+            console.log(
+                "Playing AI teacher voice:",
+                activeLanguage
+            );
+
+            return new Promise(
+                (resolve, reject) => {
+
+                    teacherAudio.onended = () => {
+                        URL.revokeObjectURL(
+                            audioUrl
+                        );
+
+                        teacherAudio = null;
+
+                        resolve();
+                    };
+
+                    teacherAudio.onerror = error => {
+                        URL.revokeObjectURL(
+                            audioUrl
+                        );
+
+                        teacherAudio = null;
+
+                        console.error(
+                            "AI teacher audio error:",
+                            error
+                        );
+
+                        reject(error);
+                    };
+
+                    teacherAudio
+                        .play()
+                        .catch(error => {
+                            URL.revokeObjectURL(
+                                audioUrl
+                            );
+
+                            teacherAudio = null;
+
+                            console.error(
+                                "Could not play AI teacher:",
+                                error
+                            );
+
+                            reject(error);
+                        });
+                }
+            );
+
+        } catch (error) {
+            console.error(
+                "OpenAI teacher speech error:",
+                error
+            );
+        }
     }
 
 
@@ -7794,9 +7867,46 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!moveQuality) {
             if (data.best_move) {
+                const activeLanguage =
+                    (
+                        teacherLanguageSelect &&
+                        teacherLanguageSelect.value
+                    )
+                        ? teacherLanguageSelect.value
+                        : (
+                            teacherLanguage ||
+                            savedTeacherLanguage ||
+                            "en-GB"
+                        );
+
+                console.log(
+                    "Initial teacher language:",
+                    activeLanguage
+                );
+
+                const initialMessages = {
+                    "en-GB":
+                        `I am ready. Look carefully at the position. ` +
+                        `One strong move is ${data.best_move}.`,
+
+                    "ru-RU":
+                        `Я готов. Внимательно посмотрите на позицию. ` +
+                        `Один из сильных ходов — ${data.best_move}.`,
+
+                    "kk-KZ":
+                        `Мен дайынмын. Позицияға мұқият қараңыз. ` +
+                        `Күшті жүрістердің бірі — ${data.best_move}.`,
+
+                    "sv-SE":
+                        `Jag är redo. Titta noggrant på ställningen. ` +
+                        `Ett starkt drag är ${data.best_move}.`
+                };
+
                 teacherMessage.textContent =
-                    `I am ready. Look carefully at the position. ` +
-                    `One strong move is ${data.best_move}.`;
+                    initialMessages[
+                        activeLanguage
+                    ] ||
+                    initialMessages["en-GB"];
             }
 
             return;

@@ -13,4 +13,9 @@ urlpatterns = [
         views.ai_teacher,
         name="ai_teacher",
     ),
+    path(
+        "teacher-speech/",
+        views.teacher_speech,
+        name="teacher_speech",
+    ),
 ]

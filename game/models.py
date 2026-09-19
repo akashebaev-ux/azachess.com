@@ -10,6 +10,12 @@ class TeacherAnswer(models.Model):
 
     answer = models.TextField()
 
+    language = models.CharField(
+        max_length=10,
+        default="en-GB",
+        db_index=True,
+    )
+
     fen = models.TextField(
         blank=True,
         default=""
